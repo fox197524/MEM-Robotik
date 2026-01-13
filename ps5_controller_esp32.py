@@ -313,40 +313,43 @@ def detect_controllers():
     return None
 
 def run_controller_listener(joystick):
-    """Main controller input listener loop"""
-    print_status("Controller listener started - Press buttons on your PS5 controller", "success")
+    """Main controller input listener"""
+    print_status("Controller listener started", "success")
     print_status("Press CTRL+C to exit\n", "info")
     
-    # Track button states to avoid duplicate sends
+    # Track button states
     button_states = {}
+    # Track axis states
     axis_states = {}
+    # Track hat states
     hat_states = {}
     
     try:
         while True:
-            # Process pygame events
+            # Process events
             for event in pygame.event.get():
                 
-                # ===== BUTTON PRESS EVENT =====
+                # ===== BUTTON PRESS =====
                 if event.type == pygame.JOYBUTTONDOWN:
                     button_name = PS5_BUTTONS.get(event.button, f"BTN_{event.button}")
                     button_states[event.button] = True
-                    print_status(f"Button pressed: {button_name}", "input")
+                    print_status(f"Button: {button_name}", "input")
                     send_input_to_esp32(button_name, "button")
                 
-                # ===== BUTTON RELEASE EVENT =====
+                # ===== BUTTON RELEASE =====
                 elif event.type == pygame.JOYBUTTONUP:
                     button_name = PS5_BUTTONS.get(event.button, f"BTN_{event.button}")
                     button_states[event.button] = False
-                    print_status(f"Button released: {button_name}", "input")
+                    print_status(f"Released: {button_name}", "input")
                 
-                # ===== ANALOG STICK / TRIGGER MOTION =====
+                # ===== ANALOG STICK / TRIGGER =====
                 elif event.type == pygame.JOYAXISMOTION:
-                    # Get axis value (-1.0 to 1.0)
+                    # Get axis value
                     value = event.value
                     
-                    # Only process significant movements (dead zone)
+                    # Filter small movements
                     if abs(value) > 0.5:
+                        # Map axis names
                         axis_names = {
                             0: "LEFT_STICK_X",
                             1: "LEFT_STICK_Y",
@@ -358,24 +361,25 @@ def run_controller_listener(joystick):
                         
                         axis_name = axis_names.get(event.axis, f"AXIS_{event.axis}")
                         
-                        # Only send if state changed significantly
+                        # Send if changed significantly
                         if event.axis not in axis_states or abs(axis_states[event.axis] - value) > 0.3:
                             axis_states[event.axis] = value
                             
-                            # Send simplified direction
                             if "STICK" in axis_name:
+                                # Direction
                                 if value < -0.5:
                                     direction = f"{axis_name}_NEG"
                                 else:
                                     direction = f"{axis_name}_POS"
-                                print_status(f"Analog: {direction} ({value:.2f})", "input")
+                                print_status(f"Stick: {direction} ({value:.2f})", "input")
                                 send_input_to_esp32(direction.lower(), "analog")
                             elif "TRIGGER" in axis_name:
                                 print_status(f"Trigger: {axis_name} ({value:.2f})", "input")
                                 send_input_to_esp32(axis_name.lower(), "trigger")
                 
-                # ===== D-PAD / HAT SWITCH =====
+                # ===== D-PAD =====
                 elif event.type == pygame.JOYHATMOTION:
+                    # Get D-Pad values
                     x, y = event.value
                     
                     dpad_input = None
@@ -394,23 +398,23 @@ def run_controller_listener(joystick):
                         print_status(f"D-Pad: {dpad_input}", "input")
                         send_input_to_esp32(dpad_input.lower(), "dpad")
             
-            # Small delay to prevent CPU spinning
+            # Small delay
             pygame.time.delay(10)
     
     except KeyboardInterrupt:
-        print_status("\nController listener stopped", "info")
+        print_status("\nListener stopped", "info")
     except Exception as e:
-        print_status(f"Error in controller listener: {e}", "error")
+        print_status(f"Error: {e}", "error")
     finally:
         pygame.quit()
 
 def main():
-    """Main application entry point"""
+    """Main entry point"""
     print_header()
     
-    # Test ESP32 connection
+    # Test connection
     if not test_esp32_connection():
-        print_status("Cannot proceed without ESP32 connection", "error")
+        print_status("ESP32 connection failed", "error")
         sys.exit(1)
     
     print()
@@ -418,12 +422,12 @@ def main():
     # Detect controller
     joystick = detect_controllers()
     if not joystick:
-        print_status("Cannot proceed without PS5 controller", "error")
+        print_status("No controller found", "error")
         sys.exit(1)
     
     print()
     
-    # Start listening to controller
+    # Start listener
     run_controller_listener(joystick)
 
 if __name__ == "__main__":
