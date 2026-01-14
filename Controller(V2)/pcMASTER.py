@@ -2,8 +2,8 @@ import pygame
 import sys
 import socket
 
-ESP32_IP = "172.20.10.2"   
-ESP32_PORT = 4210         
+ESP32_IP = "172.20.10.2"
+ESP32_PORT = 4210
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -36,7 +36,14 @@ def draw_bar(x, y, value):
     pygame.draw.rect(screen, (100,100,100), (x, y, bar_length, 20))
     pygame.draw.rect(screen, (0,200,0), (x, y, filled, 20))
 
+# --- Track previous states ---
+prev_buttons = [0] * joystick.get_numbuttons()
+prev_axes = [0.0] * joystick.get_numaxes()
+prev_hats = [(0,0)] * joystick.get_numhats()
+
 running = True
+clock = pygame.time.Clock()
+
 while running:
     screen.fill((30,30,30))
 
@@ -48,20 +55,29 @@ while running:
         state = joystick.get_button(b)
         color = (0,200,0) if state else (200,0,0)
         draw_text(f"Button {b}: {'ON' if state else 'OFF'}", 20, 20 + b*25, color)
-        send_data(f"BUTTON {b} {state}")
+
+        if state != prev_buttons[b]:
+            send_data(f"BUTTON {b} {state}")
+            prev_buttons[b] = state
 
     for a in range(joystick.get_numaxes()):
         val = joystick.get_axis(a)
         draw_text(f"Axis {a}: {val:.2f}", 300, 20 + a*40)
         draw_bar(300, 40 + a*40, val)
-        send_data(f"AXIS {a} {val:.2f}")
+
+        if abs(val - prev_axes[a]) > 0.01: 
+            send_data(f"AXIS {a} {val:.2f}")
+            prev_axes[a] = val
 
     for h in range(joystick.get_numhats()):
         val = joystick.get_hat(h)
         draw_text(f"D-pad {h}: {val}", 20, 300 + h*30)
-        send_data(f"HAT {h} {val}")
+
+        if val != prev_hats[h]:
+            send_data(f"HAT {h} {val}")
+            prev_hats[h] = val
 
     pygame.display.flip()
-    pygame.time.Clock().tick(30)  
+    clock.tick(30)
 
 pygame.quit()
