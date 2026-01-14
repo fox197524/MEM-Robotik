@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-const char* ssid = "FOX-2";
+const char* ssid = "Fox-2";
 const char* password = "Kyra2bin9";
 
 WiFiUDP udp;

@@ -2,7 +2,7 @@ import pygame
 import sys
 import socket
 
-ESP32_IP = "192.168.4.1"   
+ESP32_IP = "172.20.10.2"   
 ESP32_PORT = 4210         
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
