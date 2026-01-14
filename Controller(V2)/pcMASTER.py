@@ -1,14 +1,14 @@
 import pygame
 import sys
-import socket 
+import socket
 
-# 192.168.4.1 // IP
-# ESP32-S3-N16R8 // SS IP
-# 12345678 // PASSWRD
+ESP32_IP = "192.168.4.1"   
+ESP32_PORT = 4210         
 
-ESP32_IP = "192.168.4.1"
-ESP32_PORT = 80
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+def send_data(message: str):
+    sock.sendto(message.encode(), (ESP32_IP, ESP32_PORT))
 
 pygame.init()
 pygame.joystick.init()
@@ -32,13 +32,13 @@ def draw_text(text, x, y, color=(255,255,255)):
 
 def draw_bar(x, y, value):
     bar_length = 200
-    filled = int((value + 1) / 2 * bar_length) 
+    filled = int((value + 1) / 2 * bar_length)
     pygame.draw.rect(screen, (100,100,100), (x, y, bar_length, 20))
     pygame.draw.rect(screen, (0,200,0), (x, y, filled, 20))
 
 running = True
 while running:
-    screen.fill((30,30,30)) 
+    screen.fill((30,30,30))
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -48,17 +48,20 @@ while running:
         state = joystick.get_button(b)
         color = (0,200,0) if state else (200,0,0)
         draw_text(f"Button {b}: {'ON' if state else 'OFF'}", 20, 20 + b*25, color)
+        send_data(f"BUTTON {b} {state}")
 
     for a in range(joystick.get_numaxes()):
         val = joystick.get_axis(a)
         draw_text(f"Axis {a}: {val:.2f}", 300, 20 + a*40)
         draw_bar(300, 40 + a*40, val)
+        send_data(f"AXIS {a} {val:.2f}")
 
     for h in range(joystick.get_numhats()):
         val = joystick.get_hat(h)
         draw_text(f"D-pad {h}: {val}", 20, 300 + h*30)
+        send_data(f"HAT {h} {val}")
 
     pygame.display.flip()
-    pygame.time.Clock().tick(60)
+    pygame.time.Clock().tick(30)  
 
 pygame.quit()
