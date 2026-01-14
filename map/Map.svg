@@ -8,7 +8,7 @@
    version="1.1"
    id="svg1"
    inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
-   sodipodi:docname="drawing.svg"
+   sodipodi:docname="Map.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -26,11 +26,11 @@
      showguides="true"
      showgrid="true"
      inkscape:zoom="0.3535534"
-     inkscape:cx="1469.3679"
-     inkscape:cy="1930.4015"
-     inkscape:window-width="2400"
-     inkscape:window-height="1261"
-     inkscape:window-x="2391"
+     inkscape:cx="1248.7505"
+     inkscape:cy="572.75648"
+     inkscape:window-width="1920"
+     inkscape:window-height="991"
+     inkscape:window-x="-9"
      inkscape:window-y="-9"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1">
@@ -92,7 +92,7 @@
        height="306"
        x="707"
        y="0"
-       rx="2267.7166"
+       rx="0"
        ry="0"
        inkscape:transform-center-x="-6.0484771"
        inkscape:transform-center-y="3.1161166" />
@@ -103,7 +103,7 @@
        height="306"
        x="707"
        y="3294"
-       rx="2267.7166"
+       rx="0"
        ry="0"
        inkscape:transform-center-x="-6.0484771"
        inkscape:transform-center-y="3.1161166" />
@@ -114,7 +114,7 @@
        height="72"
        x="1665"
        y="0"
-       rx="937.12079"
+       rx="0"
        ry="0"
        transform="rotate(90)" />
     <rect
@@ -124,7 +124,7 @@
        height="72"
        x="1665"
        y="-3672"
-       rx="937.12079"
+       rx="0"
        ry="0"
        transform="rotate(90)" />
     <rect
