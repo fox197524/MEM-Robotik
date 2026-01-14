@@ -4,11 +4,25 @@ import pygame
 import sys
 import socket
 import os
+import platform
 import time
 
-# Wayland background input fix
+# 🔥 CROSS-PLATFORM JOYSTICK FIXES
+system = platform.system()
+print(f"🖥️  Starting on {system}...")
+
+# Universal SDL fixes for ALL platforms
 os.environ['SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS'] = '1'
 os.environ['SDL_JOYSTICK_HIDAPI'] = '1'
+
+if system == "Darwin":  # macOS
+    os.environ['SDL_HIDAPI_DISABLED'] = '0'
+    print("🍎 macOS mode")
+elif system == "Windows":
+    os.environ['SDL_VIDEODRIVER'] = 'windows'
+    print("🪟 Windows mode")
+else:  # Linux/Wayland
+    print("🐧 Linux mode")
 
 ESP32_IP = "172.20.10.2"   
 ESP32_PORT = 4210          
@@ -24,80 +38,109 @@ pygame.init()
 pygame.joystick.init()
 pygame.font.init()
 
-# 🔥 SAFETY CHECK: Find REAL gamepad (skip fake joysticks)
+print(f"Scanning controllers... Found {pygame.joystick.get_count()} devices")
+
+# 🔥 UNIVERSAL JOYSTICK DETECTOR
 joystick = None
 for i in range(pygame.joystick.get_count()):
-    test_joy = pygame.joystick.Joystick(i)
-    test_joy.init()
-    num_hats = test_joy.get_numhats()
-    name = test_joy.get_name().lower()
-    
-    # Skip Wacom tablets, fake joysticks (check for hats + name)
-    if num_hats > 0 and ('dual' in name or 'wireless' in name or 'controller' in name):
-        joystick = test_joy
-        print(f"✓ REAL Gamepad found: '{test_joy.get_name()}' (ID:{i})")
-        break
-    test_joy.quit()
+    try:
+        test_joy = pygame.joystick.Joystick(i)
+        test_joy.init()
+        name = test_joy.get_name()
+        num_hats = getattr(test_joy, 'get_numhats', lambda: 0)()
+        num_buttons = getattr(test_joy, 'get_numbuttons', lambda: 0)()
+        num_axes = getattr(test_joy, 'get_numaxes', lambda: 0)()
+        
+        print(f"  [{i}] '{name}' | Hats:{num_hats} Btns:{num_buttons} Axes:{num_axes}")
+        
+        # Cross-platform controller detection
+        name_lower = name.lower()
+        is_real_controller = (
+            num_buttons >= 8 or num_hats > 0 or 
+            any(keyword in name_lower for keyword in 
+                ['dual', 'wireless', 'sony', 'playstation', 'controller', 'gamepad'])
+        )
+        
+        if is_real_controller:
+            joystick = test_joy
+            print(f"✅ SELECTED: '{name}' (ID:{i})")
+            break
+            
+        test_joy.quit()
+    except Exception as e:
+        print(f"  [{i}] Failed: {e}")
+        continue
 
 if joystick is None:
-    print("❌ No REAL gamepad detected! (Only fake joysticks found)")
-    print("Found devices:")
-    for i in range(pygame.joystick.get_count()):
-        joy = pygame.joystick.Joystick(i)
-        joy.init()
-        print(f"  ID{i}: '{joy.get_name()}' - {joy.get_numhats()} hats, {joy.get_numaxes()} axes")
-        joy.quit()
+    print("❌ No gamepad found!")
+    print("\n💡 TROUBLESHOOTING:")
+    if system == "Darwin":
+        print("  • Connect via USB (most reliable)")
+        print("  • System Settings → Privacy → Input Monitoring → Allow Terminal/Python")
+    elif system == "Windows":
+        print("  • Check Device Manager → Human Interface Devices")
+        print("  • Install DS4Windows or Steam controller config")
+    else:
+        print("  • Ensure controller paired via Bluetooth")
+        print("  • Try: SDL_VIDEODRIVER=x11 python3 script.py")
     sys.exit(1)
 
 joystick.init()
+print(f"🎮 '{joystick.get_name()}' READY ON {system}!")
 
-# UI Setup (same beautiful dashboard)
-WIDTH, HEIGHT = 900, 700
+# Universal UI
+WIDTH, HEIGHT = 1000, 750
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("PS5 Controller → ESP32 (Anti-Crash!)")
+pygame.display.set_caption(f"PS5 Controller → ESP32 ({system})")
 
-# Colors & fonts (unchanged)
+# Enable background input (all platforms)
+try:
+    pygame.event.set_grab(True)
+except:
+    pass
+
+# Colors
 BLACK, GREEN, RED, BLUE, GRAY, WHITE, YELLOW, ORANGE = (
-    (20,20,30), (0,255,100), (255,50,50), (100,150,255), (100,100,120), 
-    (255,255,255), (255,255,100), (255,165,0)
+    (20,20,30), (0,255,100), (255,50,50), (100,150,255), 
+    (100,100,120), (255,255,255), (255,255,100), (255,165,0)
 )
 
 font_small = pygame.font.SysFont(None, 22)
 font_medium = pygame.font.SysFont(None, 28)
-font_large = pygame.font.SysFont(None, 40)
+font_large = pygame.font.SysFont(None, 42)
 font_press = pygame.font.SysFont(None, 20)
 
 def draw_text(text, x, y, font, color=WHITE):
-    img = font.render(str(text), True, color)
-    screen.blit(img, (x, y))
-    return img.get_width(), img.get_height()
+    try:
+        img = font.render(str(text), True, color)
+        screen.blit(img, (x, y))
+        return img.get_width(), img.get_height()
+    except:
+        return 0, 0
+
+def safe_get(joy, method, *args, default=None):
+    """Safe cross-platform access"""
+    try:
+        return method(*args)
+    except:
+        return default
 
 def draw_bar(x, y, value, width=180, height=22, color=GREEN):
     pygame.draw.rect(screen, GRAY, (x, y, width, height), border_radius=8)
     filled = int((value + 1) * width / 2)
     pygame.draw.rect(screen, color, (x, y, max(1, filled), height), border_radius=8)
 
-def safe_get_hat(joy, hat_index):
-    """Safe hat access - no crashes!"""
-    try:
-        if hat_index < joy.get_numhats():
-            return joy.get_hat(hat_index)
-    except:
-        pass
-    return (0, 0)
-
 def draw_press_log(presses, x, y):
-    for i, (time_str, btn_name, state) in enumerate(presses[-8:]):
+    for i, (time_str, btn_name, state) in enumerate(presses[-10:]):
         color = GREEN if state == "DOWN" else RED
-        pygame.draw.rect(screen, GRAY, (x, y + i*30, 280, 25), border_radius=6)
-        pygame.draw.rect(screen, color, (x, y + i*30, 280, 25), 3, border_radius=6)
-        draw_text(f"{time_str} | {btn_name}", x+8, y + i*30 + 4, font_press, WHITE)
+        pygame.draw.rect(screen, GRAY, (x, y + i*28, 320, 24), border_radius=6)
+        pygame.draw.rect(screen, color, (x, y + i*28, 320, 24), 3, border_radius=6)
+        draw_text(f"{time_str} | {btn_name}", x+8, y + i*28 + 3, font_press, WHITE)
 
-# Button names
+# Universal button names
 BUTTON_NAMES = {
-    0: "□ Square", 1: "X Cross", 2: "○ Circle", 3: "△ Triangle",
-    4: "L1", 5: "R1", 6: "L2", 7: "R2", 8: "Share", 9: "Options",
-    10: "L3", 11: "R3", 12: "PS", 13: "Touchpad"
+    0: "□", 1: "X", 2: "○", 3: "△", 4: "L1", 5: "R1", 
+    6: "L2", 7: "R2", 8: "Share", 9: "Options", 10: "L3", 11: "R3", 12: "PS"
 }
 
 packets_sent = 0
@@ -105,74 +148,82 @@ press_log = []
 clock = pygame.time.Clock()
 running = True
 
-print("✅ ANTI-CRASH Dashboard ACTIVE!")
+print("🚀 CROSS-PLATFORM DASHBOARD ACTIVE!")
 
 try:
     while running:
         screen.fill(BLACK)
         current_time = pygame.time.get_ticks() / 1000
         
-        # SAFE event processing
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.JOYBUTTONDOWN:
-                btn_name = BUTTON_NAMES.get(event.button, f"Btn{event.button}")
+                btn_id = event.button
+                btn_name = BUTTON_NAMES.get(btn_id, f"Btn{btn_id}")
                 press_log.append((f"{current_time:.1f}s", btn_name, "DOWN"))
-                send_data(f"BUTTON {event.button} 1")
+                send_data(f"BUTTON {btn_id} 1")
                 packets_sent += 1
+                print(f"[{system}] BTN {btn_id} ({btn_name}) ↓")
             elif event.type == pygame.JOYBUTTONUP:
-                btn_name = BUTTON_NAMES.get(event.button, f"Btn{event.button}")
+                btn_id = event.button
+                btn_name = BUTTON_NAMES.get(btn_id, f"Btn{btn_id}")
                 press_log.append((f"{current_time:.1f}s", btn_name, "UP"))
-                send_data(f"BUTTON {event.button} 0")
+                send_data(f"BUTTON {btn_id} 0")
                 packets_sent += 1
-            elif event.type == pygame.JOYAXISMOTION and abs(event.value) > 0.05:
-                send_data(f"AXIS {event.axis} {event.value:.2f}")
-                packets_sent += 1
+            elif event.type == pygame.JOYAXISMOTION:
+                if abs(event.value) > 0.05:
+                    send_data(f"AXIS {event.axis} {event.value:.2f}")
+                    packets_sent += 1
             elif event.type == pygame.JOYHATMOTION:
-                safe_hat = safe_get_hat(joystick, event.hat)
-                send_data(f"HAT {event.hat} {safe_hat}")
-                press_log.append((f"{current_time:.1f}s", f"D-Pad {safe_hat}", "HAT"))
+                hat_val = safe_get(joystick, joystick.get_hat, 0, default=(0,0))
+                send_data(f"HAT 0 {hat_val}")
+                press_log.append((f"{current_time:.1f}s", f"D-Pad{hat_val}", "HAT"))
 
-        # SAFE polling
-        try:
-            num_buttons = joystick.get_numbuttons()
-            num_axes = joystick.get_numaxes()
-        except:
-            num_buttons, num_axes = 14, 6
-
-        # UI (same layout, fully safe)
+        # UI Layout
         y_pos = 20
-        draw_text("🎮 PS5 Controller → ESP32 (SAFE MODE)", 20, y_pos, font_large, GREEN)
+        draw_text("🎮 Universal PS5 Controller → ESP32", 20, y_pos, font_large, GREEN)
         y_pos += 55
-        draw_text(f"📡 UDP: {packets_sent} | Hats: {joystick.get_numhats()}", 20, y_pos, font_medium, YELLOW)
+        
+        draw_text(f"📡 UDP: {packets_sent} pkts | {system} | '{joystick.get_name()}'", 
+                 20, y_pos, font_medium, YELLOW)
         y_pos += 45
-        draw_text("BACKGROUND ✓ | ANTI-CRASH ✓", 20, y_pos, font_medium, GREEN)
+        
+        draw_text("✅ Background input enabled", 20, y_pos, font_medium, GREEN)
         y_pos += 50
 
-        # Rest of UI stays exactly same...
-        # [Face buttons, shoulders, sticks, triggers, press log, D-Pad]
-        
-        # Button states
-        for btn_id, symbol, x in [(0,"□",50), (1,"X",170), (2,"○",290), (3,"△",410)]:
-            try:
-                state = joystick.get_button(btn_id)
-                draw_text(symbol, x, y_pos, font_large, GREEN if state else WHITE)
-            except:
-                pass
-        y_pos += 70
+        # Face buttons
+        for btn_id, symbol, x in [(0,"□",60), (1,"X",180), (2,"○",300), (3,"△",420)]:
+            state = safe_get(joystick, joystick.get_button, btn_id, default=False)
+            draw_text(symbol, x, y_pos, font_large, GREEN if state else WHITE)
+        y_pos += 80
+
+        # Sticks
+        lx = safe_get(joystick, joystick.get_axis, 0, default=0)
+        ly = safe_get(joystick, joystick.get_axis, 1, default=0)
+        rx = safe_get(joystick, joystick.get_axis, 2, default=0)
+        draw_text("Sticks", 60, y_pos, font_medium)
+        draw_bar(160, y_pos+5, lx)
+        draw_text(f"LX:{lx:.2f} LY:{ly:.2f}", 370, y_pos, font_small)
+        draw_bar(500, y_pos+5, rx)
+        y_pos += 80
 
         # Press log
-        draw_text("📝 RECENT PRESSES", 20, y_pos, font_medium, ORANGE)
+        draw_text("📝 RECENT PRESSES (Last 10)", 20, y_pos, font_medium, ORANGE)
         y_pos += 35
         draw_press_log(press_log, 20, y_pos)
+
+        # Status bar
+        draw_text(f"ESP32: {ESP32_IP}:{ESP32_PORT} ✓", 20, HEIGHT-35, font_small, GREEN)
+        draw_text("Press Ctrl+C to quit", WIDTH-200, HEIGHT-35, font_small, WHITE)
 
         pygame.display.flip()
         clock.tick(60)
 
 except KeyboardInterrupt:
-    print("\nStopped by user")
+    print("\n👋 Goodbye!")
 
-sock.close()
-pygame.quit()
-sys.exit()
+finally:
+    sock.close()
+    pygame.quit()
+    sys.exit()
