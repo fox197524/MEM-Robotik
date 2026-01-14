@@ -1,8 +1,8 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-const char* ssid = "ESP-S3-N16R8";
-const char* password = "12345678";
+const char* ssid = "FOX-2";
+const char* password = "Kyra2bin9";
 
 WiFiUDP udp;
 unsigned int localPort = 4210;  
