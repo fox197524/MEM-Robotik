@@ -30,6 +30,8 @@ void loop() {
   if (len) {
     udp.read(packet, 255);
     packet[len] = '\0';
+    Serial.println("------------------------------");
     Serial.println("Received: " + String(packet));
+    Serial.println("------------------------------");
   }
 }
