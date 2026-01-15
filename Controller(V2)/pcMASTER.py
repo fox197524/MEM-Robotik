@@ -133,8 +133,6 @@ try:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                running = False
             elif event.type == pygame.JOYBUTTONDOWN:
                 btn_id = event.button
                 btn_name = BUTTON_NAMES.get(btn_id, f"BTN{btn_id}")
