@@ -1,6 +1,6 @@
-// ESP32-S3 N8R2 - HC-SR04 (Serial Fix)
-#define trigPin 10
 #define echoPin 11
+#define trigPin 10
+#define buzzerPin 3
 
 void setup() {
   // Start Serial communication
