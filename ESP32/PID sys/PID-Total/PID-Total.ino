@@ -32,17 +32,22 @@ void setup() {
   pinMode(end, INPUT);
 //encoder ve mpu başlatma
   encoder.begin();
-  if (!encoder.testConnection()){
-Serial.println("Encoder nanay baba")
-  }
   mpu.initialize();
-  if (!mpu.testConnection()) {
+
+  if (!encoder.testConnection() && !mpu.testConnection() && echoPin == NULL && trigPin == NULL) {
+Serial.println("yapma ya orospu evladı seni");
+  }
+    else if (!encoder.testConnection()){
+  Serial.println("sadece Encoder nanay baba");
+    }
+      else if (!mpu.testConnection()) {
     Serial.println("MPU6050 sıkıntı kardeşim ya");
-  }
-  if (echoPin == NULL || trigPin == NULL) {
-    Serial.println("HC-SR04 pin atamasında sıkıntı var.");
-  }
-  Serial.println("Sistem Hazır...");
+      }
+        else if (echoPin == NULL || trigPin == NULL) {
+      Serial.println("otizmli misin sen çocuk");
+        }
+          else
+          Serial.println("Sistem Hazır...");
 }
 
 void loop() {
