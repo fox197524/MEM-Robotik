@@ -16,14 +16,14 @@ const long interval = 500;
 int16_t ax, ay, az; //accelerometer x,y,z'si
 int16_t gx, gy, gz; //gyroscope x,y,z'si
 
-int maximumRange = 200;
-int minimumRange = 0;
+int maximumRange = 200; //hcsr04 maks menzil cm cinsinden
+int minimumRange = 0; //hcsr04 min menzil cm cinsinden
 
 void setup() { 
 
   Serial.begin(115200);
   while (!Serial) delay(10); 
-  // I2C Başlatma (Eski Güvenli Pinler)
+  // I2C Başlatma 
   Wire.begin(8, 9);
   //Pinmode atamaları
   pinMode(trigPin, OUTPUT);
@@ -46,19 +46,19 @@ Serial.println("Encoder nanay baba")
 }
 
 void loop() {
-  unsigned long currentMillis = millis();
-  int olcum = mesafe(maximumRange, minimumRange);
+  unsigned long currentMillis = millis(); // Zamanlayıcı için mevcut zamanı alıyoruz
+  int olcum = mesafe(maximumRange, minimumRange); // HC-SR04 ile mesafe ölçümü bölümü
   
   // Mesafeyi ekrana yazdırıyoruz
-  Serial.print("Mesafe: ");
-  Serial.print(olcum);
+  Serial.print("Mesafe: "); //serial monitörde mesafeyi yazdırıyoz
+  Serial.print(olcum); //mesafenin değer değişkeni
   Serial.println(" cm");
   delay(1000);
 if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
 
     // 1. MPU6050 Okuma
-    mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz); // İvmeölçer ve jiroskop verilerini aldık
 
     // 2. HC-SR04 Okuma
     digitalWrite(TRIG_PIN, LOW);
