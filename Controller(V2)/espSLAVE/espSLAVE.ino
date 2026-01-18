@@ -66,6 +66,7 @@ void loop() {
       
       else if (msg.startsWith("HAT")) {
         Serial.println("D-pad: " + msg);
+        
       }
     }
   }
