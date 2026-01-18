@@ -39,8 +39,10 @@ Serial.println("Encoder nanay baba")
   if (!mpu.testConnection()) {
     Serial.println("MPU6050 sıkıntı kardeşim ya");
   }
-  
-  Serial.println("Sistem Hazir. Veriler 1sn arayla yazdiriliyor...");
+  if (echoPin == NULL || trigPin == NULL) {
+    Serial.println("HC-SR04 pin atamasında sıkıntı var.");
+  }
+  Serial.println("Sistem Hazır...");
 }
 
 void loop() {
