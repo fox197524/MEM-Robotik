@@ -1,12 +1,10 @@
-
-#!/usr/bin/env python3
 import pygame
 import sys
 import socket
 import os
 import platform
 
-# Cross-platform fixes (same)
+# Windows, Linux, Mac'e uygun
 system = platform.system()
 os.environ['SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS'] = '1'
 os.environ['SDL_JOYSTICK_HIDAPI'] = '1'
