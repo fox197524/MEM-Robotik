@@ -44,7 +44,7 @@ for i in range(pygame.joystick.get_count()):
         is_real_controller = (
             num_buttons >= 8 or num_hats > 0 or 
             any(keyword in name_lower for keyword in 
-                ['dual', 'wireless', 'sony', 'playstation', 'controller', 'gamepad'])
+                ['dual', 'wireless', 'sony', 'playstation', 'controller', 'gamepad', 'xbox'])
         )
         
         if is_real_controller:
@@ -56,7 +56,7 @@ for i in range(pygame.joystick.get_count()):
         continue
 
 if joystick is None:
-    print("No gamepad found!")
+    print("Kol bulunamadı.")
     sys.exit(1)
 
 joystick.init()
@@ -153,7 +153,6 @@ try:
 
         num_axes = safe_get(joystick, joystick.get_numaxes, default=6)
 
-        # 🔥 CORRECT PS5 AXIS MAPPING
         y_pos = 20
         draw_text("PS5 Controller -> ESP32 Dashboard", 20, y_pos, font_large, GREEN)
         y_pos += 50
