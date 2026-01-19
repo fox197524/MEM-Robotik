@@ -1,53 +1,37 @@
+// Your main ESP32 sketch file: map_display.ino
+
 #include <SPI.h>
-#include <TFT_eSPI.h>
+#include <TFT_eSPI.h> // Include the graphics library
+
+// Include the image data that you generated
 #include "map_image.h"
 
+// Define the dimensions of your map image
 #define MAP_WIDTH  187
 #define MAP_HEIGHT 180
 
-TFT_eSPI tft = TFT_eSPI();
+TFT_eSPI tft = TFT_eSPI(); // Create an instance of the library
 
+// THE FIX IS HERE: The file path has been removed from the line below
 void setup() {
   Serial.begin(115200);
-  // Give it a moment to connect the serial monitor
-  delay(2000); 
-
-  // --- START OF DIAGNOSTIC CODE ---
-  Serial.println("--- Map Data Verification ---");
-
-  // 1. Check the size of the array in bytes
-  size_t expected_size = MAP_WIDTH * MAP_HEIGHT * 2;
-  size_t actual_size = sizeof(map_data);
-  Serial.print("Expected array size (bytes): ");
-  Serial.println(expected_size);
-  Serial.print("Actual array size (bytes):   ");
-  Serial.println(actual_size);
-
-  if (actual_size == expected_size) {
-    Serial.println("SUCCESS: Array size is correct!");
-  } else {
-    Serial.println("ERROR: Array size is INCORRECT!");
-  }
-
-  // 2. Check the value of the very first pixel
-  Serial.print("Value of first pixel (HEX): 0x");
-  Serial.println(map_data[0], HEX);
-  Serial.println("---------------------------");
-  // --- END OF DIAGNOSTIC CODE ---
-
-
   tft.init();
-  tft.setRotation(1);
+  tft.setRotation(1); // Adjust rotation as needed (0, 1, 2, 3)
   tft.fillScreen(TFT_BLACK);
 
-  // ... rest of your setup code ...
+  // Display a message
   tft.setTextColor(TFT_WHITE);
   tft.setCursor(10, 10);
   tft.println("Loading map...");
   delay(1000);
+
+  // Draw the map onto the screen at position (0, 0)
+  // The pushImage function is very fast for this
   tft.pushImage(0, 0, MAP_WIDTH, MAP_HEIGHT, map_data);
+  Serial.write("ahmete gireri umarim");
 }
 
 void loop() {
-  // ...
+  // The map is static, so nothing needs to be done in the loop.
+  // You could add code here to draw a moving dot or other indicators on top.
 }
