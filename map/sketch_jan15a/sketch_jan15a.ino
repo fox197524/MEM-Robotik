@@ -28,7 +28,7 @@ void setup() {
   // Draw the map onto the screen at position (0, 0)
   // The pushImage function is very fast for this
   tft.pushImage(0, 0, MAP_WIDTH, MAP_HEIGHT, map_data);
-  Serial.write("ahmete gireri umarim");
+  Serial.write("messy load on burak gumusoglu!");
 }
 
 void loop() {
