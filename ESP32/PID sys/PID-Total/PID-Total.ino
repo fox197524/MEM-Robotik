@@ -29,25 +29,24 @@ void setup() {
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   pinMode(enclk, INPUT);
-  pinMode(end, INPUT);
-//encoder ve mpu başlatma
-  encoder.begin();
+  pinMode(endt, INPUT);
+  // only initialize what the libraries provide
   mpu.initialize();
 
   if (!encoder.testConnection() && !mpu.testConnection() && echoPin == NULL && trigPin == NULL) {
-Serial.println(" Yapma Ya Orospu Evladı Seni ");
+  Serial.println(" Yapma Ya Orospu Evladı Seni ");
   }
     else if (!encoder.testConnection()){
-  Serial.println("sadece Encoder nanay baba");
+    Serial.println("sadece Encoder nanay baba");
     }
       else if (!mpu.testConnection()) {
-    Serial.println("MPU6050 sıkıntı kardeşim ya");
+      Serial.println("MPU6050 sıkıntı kardeşim ya");
       }
         else if (echoPin == NULL || trigPin == NULL) {
-      Serial.println("otizmli misin sen çocuk");
+        Serial.println("otizmli misin sen çocuk");
         }
           else
-          Serial.println("Sistem Hazır...");
+            Serial.println("Sistem Hazır...");
 }
 
 void loop() {
@@ -66,17 +65,17 @@ if (currentMillis - previousMillis >= interval) {
     mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz); // İvmeölçer ve jiroskop verilerini aldık
 
     // 2. HC-SR04 Okuma
-    digitalWrite(TRIG_PIN, LOW);
+    digitalWrite(trigPin, LOW);
     delayMicroseconds(2);
-    digitalWrite(TRIG_PIN, HIGH);
+    digitalWrite(trigPin, HIGH);
     delayMicroseconds(10);
-    digitalWrite(TRIG_PIN, LOW);
-    long duration = pulseIn(ECHO_PIN, HIGH, 30000); 
+    digitalWrite(trigPin, LOW);
+    long duration = pulseIn(echoPin, HIGH, 30000); 
     float mesafe = duration / 58.2;
 
-    // 3. Encoder Tur Hesabı (KY-040: 20 Tık = 1 Tur)
+    // 3. Encoder Tur Hesabı (KY-040: 30 Tık = 1 Tur)
     int encoderPos = encoder.getCounter(); 
-    float tur = (float)encoderPos / 20.0;
+    float tur = (float)encoderPos / 30.0;
 
     // --- TEK SATIR FORMATLI ÇIKTI ---
     // Format: MPU / HCSR / Encoder
