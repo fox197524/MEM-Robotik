@@ -2,6 +2,9 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
 
 // ======================= PIN DEFINITIONS =======================
 // HC-SR04 Ultrasonic Sensors (Front, Front-Right, Back-Left, Back-Right)
@@ -45,30 +48,32 @@ unsigned int localPort = 4210;
 // ======================= SENSOR OBJECTS =======================
 MPU6050 mpu;
 
-// ======================= SENSOR DATA =======================
+// ======================= SENSOR DATA (SHARED) =======================
 // MPU6050
-int16_t ax, ay, az, gx, gy, gz;
+volatile int16_t ax, ay, az, gx, gy, gz;
 
 // HC-SR04 Distances (cm)
-float distance_front = 0, distance_fr = 0, distance_bl = 0, distance_br = 0;
+volatile float distance_front = 0, distance_fr = 0, distance_bl = 0, distance_br = 0;
 
 // Encoder Counters (pulses)
 volatile long encoder_fl = 0, encoder_fr = 0, encoder_bl = 0, encoder_br = 0;
 volatile long encoder_lu = 0, encoder_ld = 0;
 
-// Timing
-unsigned long lastSensorRead = 0;
-const long sensorInterval = 100; // 100ms = 10Hz sensor readout
+// ======================= FREERTOS OBJECTS =======================
+SemaphoreHandle_t motorMutex;       // Protects motor command variables
+SemaphoreHandle_t encoderMutex;     // Protects encoder counters
 
-// ======================= ENCODER ISR =======================
-void IRAM_ATTR encFL_ISR() { encoder_fl++; }
-void IRAM_ATTR encFR_ISR() { encoder_fr++; }
-void IRAM_ATTR encBL_ISR() { encoder_bl++; }
-void IRAM_ATTR encBR_ISR() { encoder_br++; }
-void IRAM_ATTR encLU_ISR() { encoder_lu++; }
-void IRAM_ATTR encLD_ISR() { encoder_ld++; }
+// ======================= MOTOR COMMAND VARIABLES (SHARED) =======================
+volatile int target_fl = 0, target_fr = 0, target_bl = 0, target_br = 0;
+volatile int target_lu = 0, target_ld = 0;
+
+// ======================= TASK HANDLES =======================
+TaskHandle_t networkTaskHandle = NULL;
+TaskHandle_t controlTaskHandle = NULL;
 
 // ======================= FUNCTION PROTOTYPES =======================
+void networkingTask(void *pvParameters);
+void controlTask(void *pvParameters);
 void initWiFi();
 void initUART1();
 void readMPU6050();
@@ -77,12 +82,31 @@ void handleWiFiCommand(String msg);
 void sendUART1(String msg);
 void printSensorData();
 
+// ======================= ENCODER ISR =======================
+void IRAM_ATTR encFL_ISR() { encoder_fl = encoder_fl + 1; }
+void IRAM_ATTR encFR_ISR() { encoder_fr = encoder_fr + 1; }
+void IRAM_ATTR encBL_ISR() { encoder_bl = encoder_bl + 1; }
+void IRAM_ATTR encBR_ISR() { encoder_br = encoder_br + 1; }
+void IRAM_ATTR encLU_ISR() { encoder_lu = encoder_lu + 1; }
+void IRAM_ATTR encLD_ISR() { encoder_ld = encoder_ld + 1; }
+
 // ======================= SETUP =======================
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
   
-  Serial.println("\n\n=== ESP32-S3 Sensor Controller Starting ===");
+  Serial.println("\n\n=== ESP32-S3 Dual-Core Robotics Controller ===");
+  Serial.println("[CORE] Main setup() running on Core " + String(xPortGetCoreID()));
+  
+  // Create Mutexes
+  motorMutex = xSemaphoreCreateMutex();
+  encoderMutex = xSemaphoreCreateMutex();
+  
+  if (motorMutex == NULL || encoderMutex == NULL) {
+    Serial.println("[ERROR] Failed to create mutexes!");
+    while(1);
+  }
+  Serial.println("[MUTEX] Semaphores created");
   
   // Initialize I2C for MPU6050
   Wire.begin(I2C_SDA, I2C_SCL);
@@ -92,7 +116,7 @@ void setup() {
   mpu.initialize();
   if (!mpu.testConnection()) {
     Serial.println("[ERROR] MPU6050 not detected!");
-    while(1); // Halt
+    while(1);
   }
   Serial.println("[MPU6050] Connected");
   
@@ -122,35 +146,83 @@ void setup() {
   attachInterrupt(ENC_LD_CLK, encLD_ISR, RISING);
   Serial.println("[Encoders] ISRs attached");
   
-  // Initialize UART1 (to second ESP32)
+  // Initialize UART1
   initUART1();
   
-  // Initialize WiFi
-  initWiFi();
+  // Create FreeRTOS Tasks
+  // CORE 0: Networking Task (WiFi + UART)
+  xTaskCreatePinnedToCore(
+    networkingTask,        // Task function
+    "NetworkingTask",      // Task name
+    4096,                  // Stack size (bytes)
+    NULL,                  // Parameters
+    2,                     // Priority (higher number = higher priority)
+    &networkTaskHandle,    // Task handle
+    0                      // Core 0
+  );
+  Serial.println("[TASK] Networking Task created on Core 0");
   
-  Serial.println("=== System Ready ===\n");
+  // CORE 1: Control Task (Sensors + PID)
+  xTaskCreatePinnedToCore(
+    controlTask,           // Task function
+    "ControlTask",         // Task name
+    4096,                  // Stack size (bytes)
+    NULL,                  // Parameters
+    3,                     // Priority (higher = more important)
+    &controlTaskHandle,    // Task handle
+    1                      // Core 1
+  );
+  Serial.println("[TASK] Control Task created on Core 1");
+  
+  Serial.println("=== Setup Complete - Tasks Running ===\n");
+  
+  // Delete setup task (no longer needed)
+  vTaskDelete(NULL);
 }
 
-// ======================= MAIN LOOP =======================
-void loop() {
-  unsigned long currentMillis = millis();
+// ======================= CORE 0: NETWORKING TASK =======================
+void networkingTask(void *pvParameters) {
+  // Initialize WiFi in this task
+  initWiFi();
   
-  // Handle WiFi commands
-  char packet[255];
-  int len = udp.parsePacket();
-  if (len) {
-    udp.read(packet, len);
-    packet[len] = '\0';
-    handleWiFiCommand(String(packet));
-  }
+  Serial.println("[NETWORKING] Task started on Core " + String(xPortGetCoreID()));
   
-  // Read sensors at fixed interval
-  if (currentMillis - lastSensorRead >= sensorInterval) {
-    lastSensorRead = currentMillis;
+  const TickType_t xDelay = 10 / portTICK_PERIOD_MS;  // 10ms loop
+  
+  while(1) {
+    // Parse incoming WiFi UDP commands
+    char packet[255];
+    int len = udp.parsePacket();
+    if (len) {
+      udp.read(packet, len);
+      packet[len] = '\0';
+      handleWiFiCommand(String(packet));
+    }
     
+    vTaskDelay(xDelay);
+  }
+}
+
+// ======================= CORE 1: CONTROL TASK =======================
+void controlTask(void *pvParameters) {
+  Serial.println("[CONTROL] Task started on Core " + String(xPortGetCoreID()));
+  
+  const TickType_t xDelay = 10 / portTICK_PERIOD_MS;  // 100Hz control loop (10ms)
+  unsigned long printCounter = 0;
+  
+  while(1) {
+    // Read sensors (I2C + GPIO)
     readMPU6050();
     readHCSR04();
-    printSensorData();
+    
+    // Print sensor data every 100ms (every 10 iterations)
+    if (++printCounter >= 10) {
+      printCounter = 0;
+      printSensorData();
+    }
+    
+    // Task timing
+    vTaskDelay(xDelay);
   }
 }
 
@@ -160,9 +232,9 @@ void initWiFi() {
   Serial.println(ssid);
   
   WiFi.begin(ssid, password);
-  int timeout = 20; // 10 seconds max
+  int timeout = 20;
   while (WiFi.status() != WL_CONNECTED && timeout > 0) {
-    delay(500);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
     Serial.print(".");
     timeout--;
   }
@@ -191,7 +263,8 @@ void sendUART1(String msg) {
 
 // ======================= READ MPU6050 =======================
 void readMPU6050() {
-  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+  mpu.getMotion6((int16_t*)&ax, (int16_t*)&ay, (int16_t*)&az, 
+                 (int16_t*)&gx, (int16_t*)&gy, (int16_t*)&gz);
 }
 
 // ======================= READ HC-SR04 =======================
@@ -241,9 +314,43 @@ void handleWiFiCommand(String msg) {
     int axisId = msg.substring(firstSpace + 1, secondSpace).toInt();
     float val = msg.substring(secondSpace + 1).toFloat();
     
-    // Send to second ESP32 based on axis
-    // Example: AXIS 0 = Front-Left/Right (Y), AXIS 1 = Front-Right (X)
-    // Adjust mapping based on your controller layout
+    Serial.print("[WiFi] AXIS ");
+    Serial.print(axisId);
+    Serial.print(" = ");
+    Serial.println(val);
+    
+    // Map axis values to motor PWM (-255 to +255)
+    // Assuming dual-stick controller: Axis 0,1 = Left stick, Axis 2,3 = Right stick
+    // Left stick Y (axis 1) controls front motors (FL, FR)
+    // Right stick Y (axis 3) controls back motors (BL, BR)
+    
+    if (axisId == 0) {
+      // Left stick X - Rotation/Steering
+      int pwm = map(val, -1.0, 1.0, -255, 255);
+      xSemaphoreTake(motorMutex, portMAX_DELAY);
+      target_fl = pwm;
+      target_br = pwm;
+      target_fr = -pwm;
+      target_bl = -pwm;
+      xSemaphoreGive(motorMutex);
+    }
+    else if (axisId == 1) {
+      // Left stick Y - Forward/Backward
+      int pwm = map(val, -1.0, 1.0, -255, 255);
+      xSemaphoreTake(motorMutex, portMAX_DELAY);
+      target_fl = pwm;
+      target_fr = pwm;
+      target_bl = pwm;
+      target_br = pwm;
+      xSemaphoreGive(motorMutex);
+      
+      sendUART1("FL " + String(pwm));
+      sendUART1("FR " + String(pwm));
+      sendUART1("BL " + String(pwm));
+      sendUART1("BR " + String(pwm));
+      Serial.print("[UART] Motors set to ");
+      Serial.println(pwm);
+    }
   }
   
   else if (msg.startsWith("BUTTON")) {
@@ -252,7 +359,38 @@ void handleWiFiCommand(String msg) {
     int btnId = msg.substring(firstSpace + 1, secondSpace).toInt();
     int state = msg.substring(secondSpace + 1).toInt();
     
-    // Handle button press (lift up/down, etc.)
+    Serial.print("[WiFi] BUTTON ");
+    Serial.print(btnId);
+    Serial.print(" = ");
+    Serial.println(state ? "PRESSED" : "RELEASED");
+    
+    // Handle button press (lift up/down via UART)
+    if (state == 1) {  // Button pressed
+      if (btnId == 5) {  // Example: Button 5 = Lift Up
+        xSemaphoreTake(motorMutex, portMAX_DELAY);
+        target_lu = 150;
+        target_ld = 150;
+        xSemaphoreGive(motorMutex);
+        sendUART1("LU 150");
+        Serial.println("[UART] Lift UP: 150");
+      }
+      else if (btnId == 6) {  // Button 6 = Lift Down
+        xSemaphoreTake(motorMutex, portMAX_DELAY);
+        target_lu = -150;
+        target_ld = -150;
+        xSemaphoreGive(motorMutex);
+        sendUART1("LU -150");
+        Serial.println("[UART] Lift DOWN: -150");
+      }
+    }
+    else {  // Button released
+      xSemaphoreTake(motorMutex, portMAX_DELAY);
+      target_lu = 0;
+      target_ld = 0;
+      xSemaphoreGive(motorMutex);
+      sendUART1("LU 0");
+      Serial.println("[UART] Lift STOP");
+    }
   }
   
   else if (msg.startsWith("HAT")) {
@@ -263,10 +401,17 @@ void handleWiFiCommand(String msg) {
     int hatId = msg.substring(firstSpace + 1, secondSpace).toInt();
     int x = msg.substring(secondSpace + 1, thirdSpace).toInt();
     int y = msg.substring(thirdSpace + 1).toInt();
+    
+    Serial.print("[WiFi] D-PAD: X=");
+    Serial.print(x);
+    Serial.print(" Y=");
+    Serial.println(y);
+    
+    // D-pad navigation (e.g., select map waypoints)
   }
 }
 
-// ======================= PRINT SENSOR DATA =======================
+// ======================= PRINT SENSOR DATA (CORE 1 ONLY) =======================
 void printSensorData() {
   Serial.print("MPU6050: AX=");
   Serial.print(ax);
@@ -308,21 +453,8 @@ void printSensorData() {
   Serial.println("---");
 }
 
-// ======================= ENCODER CALIBRATION =======================
-/*
-  CALIBRATION PROCEDURE FOR LIFT SYSTEM:
-  
-  1. Manually move the lifter up to a known starting height (e.g., bottom position)
-  2. Reset encoder counters: encoder_lu = 0; encoder_ld = 0;
-  3. Run the lifter up to a measured height (e.g., lift 30cm)
-  4. Note the encoder_lu pulses
-  5. Calculate: pulses_per_cm = encoder_lu / height_in_cm
-  
-  Example: If lifting 30cm = 150 pulses, then 5 pulses/cm
-  
-  Once calibrated, use: height_cm = encoder_lu / pulses_per_cm
-  
-  To reset encoders during runtime:
-  - Add serial command "RESET_ENC" to Serial.readString()
-  - Then: encoder_lu = 0; encoder_ld = 0;
-*/
+// ======================= EMPTY LOOP (FREERTOS TAKES OVER) =======================
+void loop() {
+  // All work is done by FreeRTOS tasks
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
+}
