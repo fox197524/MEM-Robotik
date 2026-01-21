@@ -25,10 +25,17 @@ last_axes = [0.0] * joystick.get_numaxes()
 last_buttons = [0] * joystick.get_numbuttons()
 last_hats = [(0,0)] * joystick.get_numhats()
 
-screen = pygame.display.set_mode((640, 420))
+# --- UI Settings ---
+screen = pygame.display.set_mode((800, 700)) # Increased window size
 pygame.display.set_caption("PS5 Controller")
-font = pygame.font.SysFont("Consolas", 18)
+font = pygame.font.SysFont("Consolas", 16)
 clock = pygame.time.Clock()
+
+COLUMN_SPACING = 400
+LEFT_COLUMN_X = 50
+RIGHT_COLUMN_X = LEFT_COLUMN_X + COLUMN_SPACING
+Y_START = 40
+Y_SPACING = 25
 
 running = True
 
@@ -40,32 +47,40 @@ while running:
 
     screen.fill((20,20,24))
 
-    # === AXES ===
+    # === AXES (Left Column) ===
     for i in range(joystick.get_numaxes()):
         val = joystick.get_axis(i)
-        # Only send if changed significantly
-        if abs(val - last_axes[i]) > 0.01:   # tolerance to avoid noise
+        if abs(val - last_axes[i]) > 0.01:
             last_axes[i] = val
             msg = f"AXIS {i} {val:.3f}"
             sock.sendto(msg.encode(), (ESP32_IP, ESP32_PORT))
-        bar_len = int((val + 1.0) * 120)
-        pygame.draw.rect(screen, (0,180,80), (40, 40 + i*28, bar_len, 18))
-        text = font.render(f"Axis {i}: {val:.3f}", True, (230,230,230))
-        screen.blit(text, (300, 40 + i*28))
 
-    # === BUTTONS ===
+        # Visual representation
+        bar_len = int((val + 1.0) * 100) # Scale bar length
+        bar_y = Y_START + i * Y_SPACING
+        pygame.draw.rect(screen, (50,50,50), (LEFT_COLUMN_X, bar_y, 200, 18)) # Background for bar
+        pygame.draw.rect(screen, (0,180,80), (LEFT_COLUMN_X, bar_y, bar_len, 18))
+        text = font.render(f"Axis {i}: {val:.3f}", True, (230,230,230))
+        screen.blit(text, (LEFT_COLUMN_X + 220, bar_y))
+
+    # === BUTTONS (Right Column) ===
     for i in range(joystick.get_numbuttons()):
         state = joystick.get_button(i)
         if state != last_buttons[i]:
             last_buttons[i] = state
             msg = f"BUTTON {i} {state}"
             sock.sendto(msg.encode(), (ESP32_IP, ESP32_PORT))
-        color = (220,60,60) if state else (80,80,90)
-        pygame.draw.circle(screen, color, (40 + i*26, 260), 10)
-        text = font.render(str(i), True, (230,230,230))
-        screen.blit(text, (34 + i*26, 278))
 
-    # === HAT (D-pad) ===
+        # Visual representation
+        button_y = Y_START + i * Y_SPACING +150  # Offset buttons down
+        color = (220,60,60) if state else (80,80,90)
+        pygame.draw.rect(screen, color, (RIGHT_COLUMN_X, button_y, 100, 18))
+        text = font.render(f"Button {i}", True, (230,230,230))
+        screen.blit(text, (RIGHT_COLUMN_X + 150, button_y))
+
+
+    # === HAT (D-pad) (Bottom of Left Column) ===
+    hat_y_pos = Y_START + joystick.get_numaxes() * Y_SPACING + 40 # Position after axes
     for i in range(joystick.get_numhats()):
         hat = joystick.get_hat(i)
         if hat != last_hats[i]:
@@ -73,7 +88,7 @@ while running:
             msg = f"HAT {i} {hat[0]} {hat[1]}"
             sock.sendto(msg.encode(), (ESP32_IP, ESP32_PORT))
         text = font.render(f"D-pad {i}: {hat}", True, (230,230,230))
-        screen.blit(text, (40, 320 + i*24))
+        screen.blit(text, (LEFT_COLUMN_X, hat_y_pos + i * Y_SPACING))
 
     pygame.display.flip()
-    clock.tick(60)   # smooth UI
+    clock.tick(60)
