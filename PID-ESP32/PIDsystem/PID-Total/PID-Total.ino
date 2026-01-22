@@ -17,19 +17,19 @@
 #define HC_TRIG_4 15
 #define HC_ECHO_4 14
 
-// Encoder Pins (CLK, DT) - FL, FR, BL, BR, LiftUp, LiftDown
+// Encoder Pins (CLK, DT) - Front Left, Front Right, Back Left, Back Right, LiftUp, LiftDown
 #define ENC_FL_CLK 4
 #define ENC_FL_DT 5
 #define ENC_FR_CLK 12
 #define ENC_FR_DT 13
-#define ENC_BL_CLK 16
-#define ENC_BL_DT 2
-#define ENC_BR_CLK 19
-#define ENC_BR_DT 20
+#define ENC_BL_CLK 37
+#define ENC_BL_DT 38
+#define ENC_BR_CLK 41
+#define ENC_BR_DT 42
 #define ENC_LU_CLK 10
 #define ENC_LU_DT 11
-#define ENC_LD_CLK 41
-#define ENC_LD_DT 40
+#define ENC_LD_CLK 40
+#define ENC_LD_DT 39
 
 // I2C Pins (MPU6050)
 #define I2C_SDA 8

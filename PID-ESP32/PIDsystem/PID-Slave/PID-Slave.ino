@@ -10,26 +10,27 @@
 #define UART1_RX 17
 #define UART1_TX 18
 
-// Motor Control Pins (TB6612FNG - IN1, IN2, PWM for each motor)
-// Front-Left Motor
-#define FL_IN1 1
-#define FL_IN2 2
-#define FL_PWM 3
+/*
+  First: rear right: AIN1: 4 AIN2: 5 A1: motor positive A2: motor negative STBY: 6
+  Second: rear left: AIN1: 7 AIN2: 15 A1: motor positive A2: motor negative STBY: 16
+  Third: front right: AIN1: 17 AIN2: 18 A1: motor positive A2: motor negative STBY: 8
+  Fourth: front left: AIN1: 3 AIN2: 46 A1: motor positive A2: motor negative STBY: 9
+*/
+#define RR_AIN1 4
+#define RR_AIN2 5
+#define RR_STBY 6
 
-// Front-Right Motor
-#define FR_IN1 4
-#define FR_IN2 5
-#define FR_PWM 6
+#define RL_AIN1 7
+#define RL_AIN2 15
+#define RL_STBY 16
 
-// Back-Left Motor
-#define BL_IN1 7
-#define BL_IN2 8
-#define BL_PWM 9
+#define FR_AIN1 17
+#define FR_AIN2 18
+#define FR_STBY 8
 
-// Back-Right Motor
-#define BR_IN1 10
-#define BR_IN2 11
-#define BR_PWM 12
+#define FL_AIN1 3
+#define FL_AIN2 46
+#define FL_STBY 9
 
 // Lift-Up Motor
 #define LU_IN1 13

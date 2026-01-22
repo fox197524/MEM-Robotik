@@ -9,17 +9,17 @@
 #define RR_AIN2 5
 #define RR_STBY 6
 
-#define RL_AIN1 7
-#define RL_AIN2 15
-#define RL_STBY 16
+#define RL_AIN1 15
+#define RL_AIN2 16
+#define RL_STBY 17
 
-#define FR_AIN1 17
-#define FR_AIN2 18
-#define FR_STBY 8
+#define FR_AIN1 11
+#define FR_AIN2 12
+#define FR_STBY 13
 
-#define FL_AIN1 3
-#define FL_AIN2 46
-#define FL_STBY 9
+#define FL_AIN1 2
+#define FL_AIN2 42
+#define FL_STBY 41
 
 void setup() {
   pinMode(RR_AIN1, OUTPUT); pinMode(RR_AIN2, OUTPUT); pinMode(RR_STBY, OUTPUT);
