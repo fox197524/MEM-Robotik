@@ -5,7 +5,7 @@ import socket
 # Allow joystick events in background
 os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
 
-ESP32_IP = ""   # ESP32 IP adresini buraya yaz
+ESP32_IP = "192.168.1.128"   # ESP32 IP adresini buraya yaz 192.168.1.128
 ESP32_PORT = 4210
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

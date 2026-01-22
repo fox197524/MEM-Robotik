@@ -1,0 +1,413 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red210\green220\blue220;\red183\green111\blue179;
+\red24\green24\blue24;\red193\green193\blue193;\red67\green192\blue160;\red89\green138\blue67;\red140\green211\blue254;
+\red194\green126\blue101;\red202\green202\blue202;\red66\green179\blue255;\red167\green197\blue152;\red212\green214\blue154;
+\red70\green137\blue204;\red183\green111\blue179;\red24\green29\blue31;\red210\green220\blue220;\red110\green193\blue194;
+\red108\green121\blue122;\red238\green138\blue18;\red22\green145\blue149;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c85490\c89020\c89020;\cssrgb\c77255\c52549\c75294;
+\cssrgb\c12157\c12157\c12157;\cssrgb\c80000\c80000\c80000;\cssrgb\c30588\c78824\c69020;\cssrgb\c41569\c60000\c33333;\cssrgb\c61176\c86275\c99608;
+\cssrgb\c80784\c56863\c47059;\cssrgb\c83137\c83137\c83137;\cssrgb\c30980\c75686\c100000;\cssrgb\c70980\c80784\c65882;\cssrgb\c86275\c86275\c66667;
+\cssrgb\c33725\c61176\c83922;\cssrgb\c77255\c52549\c75294;\cssrgb\c12157\c15294\c16471;\cssrgb\c85490\c89020\c89020;\cssrgb\c49804\c79608\c80392;
+\cssrgb\c49804\c54902\c55294;\cssrgb\c95294\c61176\c7059;\cssrgb\c4706\c63137\c65098;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs24 \cf2 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec3 Piton kodu:\
+\pard\pardeftab720\partightenfactor0
+
+\fs26 \cf4 \cb5 \strokec4 import\cf6 \strokec6  \cf7 \strokec7 os\cf6 \cb1 \strokec6 \
+\cf4 \cb5 \strokec4 import\cf6 \strokec6  \cf7 \strokec7 pygame\cf6 \cb1 \strokec6 \
+\cf4 \cb5 \strokec4 import\cf6 \strokec6  \cf7 \strokec7 socket\cf6 \cb1 \strokec6 \
+\
+\cf8 \cb5 \strokec8 # Allow joystick events in background\cf6 \cb1 \strokec6 \
+\cf7 \cb5 \strokec7 os\cf6 \strokec6 .\cf9 \strokec9 environ\cf6 \strokec6 [\cf10 \strokec10 "SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"\cf6 \strokec6 ] \cf11 \strokec11 =\cf6 \strokec6  \cf10 \strokec10 "1"\cf6 \cb1 \strokec6 \
+\
+\cf12 \cb5 \strokec12 ESP32_IP\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf10 \strokec10 ""\cf6 \strokec6    \cf8 \strokec8 # ESP32 IP adresini buraya yaz 192.168.1.128\cf6 \cb1 \strokec6 \
+\cf12 \cb5 \strokec12 ESP32_PORT\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf13 \strokec13 4210\cf6 \cb1 \strokec6 \
+\
+\cf9 \cb5 \strokec9 sock\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf7 \strokec7 socket\cf6 \strokec6 .\cf7 \strokec7 socket\cf6 \strokec6 (\cf7 \strokec7 socket\cf6 \strokec6 .\cf9 \strokec9 AF_INET\cf6 \strokec6 , \cf7 \strokec7 socket\cf6 \strokec6 .\cf9 \strokec9 SOCK_DGRAM\cf6 \strokec6 )\cb1 \
+\
+\cf7 \cb5 \strokec7 pygame\cf6 \strokec6 .init()\cb1 \
+\cf7 \cb5 \strokec7 pygame\cf6 \strokec6 .joystick.init()\cb1 \
+\
+\cf4 \cb5 \strokec4 if\cf6 \strokec6  \cf7 \strokec7 pygame\cf6 \strokec6 .joystick.get_count() \cf11 \strokec11 ==\cf6 \strokec6  \cf13 \strokec13 0\cf6 \strokec6 :\cb1 \
+\cb5     \cf4 \strokec4 raise\cf6 \strokec6  \cf7 \strokec7 RuntimeError\cf6 \strokec6 (\cf10 \strokec10 "No controller detected!"\cf6 \strokec6 )\cb1 \
+\
+\cf9 \cb5 \strokec9 joystick\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf7 \strokec7 pygame\cf6 \strokec6 .joystick.Joystick(\cf13 \strokec13 0\cf6 \strokec6 )\cb1 \
+\cf9 \cb5 \strokec9 joystick\cf6 \strokec6 .init()\cb1 \
+\cf14 \cb5 \strokec14 print\cf6 \strokec6 (\cf15 \strokec15 f\cf10 \strokec10 "Connected to controller: \cf15 \strokec15 \{\cf9 \strokec9 joystick\cf6 \strokec6 .get_name()\cf15 \strokec15 \}\cf10 \strokec10 "\cf6 \strokec6 )\cb1 \
+\
+\cf8 \cb5 \strokec8 # --- UI Settings ---\cf6 \cb1 \strokec6 \
+\cf9 \cb5 \strokec9 screen\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf7 \strokec7 pygame\cf6 \strokec6 .display.set_mode((\cf13 \strokec13 800\cf6 \strokec6 , \cf13 \strokec13 700\cf6 \strokec6 )) \cb1 \
+\cf7 \cb5 \strokec7 pygame\cf6 \strokec6 .display.set_caption(\cf10 \strokec10 "PS5 Controller - Continuous Send Mode"\cf6 \strokec6 )\cb1 \
+\cf9 \cb5 \strokec9 font\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf7 \strokec7 pygame\cf6 \strokec6 .font.SysFont(\cf10 \strokec10 "Consolas"\cf6 \strokec6 , \cf13 \strokec13 16\cf6 \strokec6 )\cb1 \
+\cf9 \cb5 \strokec9 clock\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf7 \strokec7 pygame\cf6 \strokec6 .time.Clock()\cb1 \
+\
+\cf12 \cb5 \strokec12 COLUMN_SPACING\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf13 \strokec13 400\cf6 \cb1 \strokec6 \
+\cf12 \cb5 \strokec12 LEFT_COLUMN_X\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf13 \strokec13 50\cf6 \cb1 \strokec6 \
+\cf12 \cb5 \strokec12 RIGHT_COLUMN_X\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf12 \strokec12 LEFT_COLUMN_X\cf6 \strokec6  \cf11 \strokec11 +\cf6 \strokec6  \cf12 \strokec12 COLUMN_SPACING\cf6 \cb1 \strokec6 \
+\cf12 \cb5 \strokec12 Y_START\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf13 \strokec13 40\cf6 \cb1 \strokec6 \
+\cf12 \cb5 \strokec12 Y_SPACING\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf13 \strokec13 25\cf6 \cb1 \strokec6 \
+\
+\cf8 \cb5 \strokec8 # S\'fcrekli veri g\'f6nderimi i\'e7in zamanlay\uc0\u305 c\u305 \cf6 \cb1 \strokec6 \
+\cf9 \cb5 \strokec9 last_send_time\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf13 \strokec13 0\cf6 \cb1 \strokec6 \
+\cf12 \cb5 \strokec12 SEND_INTERVAL\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf13 \strokec13 50\cf6 \strokec6   \cf8 \strokec8 # Milisaniye (Her 50ms'de bir veri yollar)\cf6 \cb1 \strokec6 \
+\
+\cf9 \cb5 \strokec9 running\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf15 \strokec15 True\cf6 \cb1 \strokec6 \
+\
+\cf4 \cb5 \strokec4 while\cf6 \strokec6  \cf9 \strokec9 running\cf6 \strokec6 :\cb1 \
+\cb5     \cf8 \strokec8 # 1. Eventleri Yakala (Pencere donmas\uc0\u305 n diye)\cf6 \cb1 \strokec6 \
+\cb5     \cf7 \strokec7 pygame\cf6 \strokec6 .event.pump()\cb1 \
+\cb5     \cf4 \strokec4 for\cf6 \strokec6  \cf9 \strokec9 event\cf6 \strokec6  \cf4 \strokec4 in\cf6 \strokec6  \cf7 \strokec7 pygame\cf6 \strokec6 .event.get():\cb1 \
+\cb5         \cf4 \strokec4 if\cf6 \strokec6  \cf9 \strokec9 event\cf6 \strokec6 .type \cf11 \strokec11 ==\cf6 \strokec6  \cf7 \strokec7 pygame\cf6 \strokec6 .QUIT:\cb1 \
+\cb5             \cf9 \strokec9 running\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf15 \strokec15 False\cf6 \cb1 \strokec6 \
+\
+\cb5     \cf9 \strokec9 screen\cf6 \strokec6 .fill((\cf13 \strokec13 20\cf6 \strokec6 ,\cf13 \strokec13 20\cf6 \strokec6 ,\cf13 \strokec13 24\cf6 \strokec6 ))\cb1 \
+\cb5     \cb1 \
+\cb5     \cf9 \strokec9 current_time\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf7 \strokec7 pygame\cf6 \strokec6 .time.get_ticks()\cb1 \
+\
+\cb5     \cf8 \strokec8 # ==========================================\cf6 \cb1 \strokec6 \
+\cb5     \cf8 \strokec8 # 1. G\'d6RSELLE\uc0\u350 T\u304 RME (Ekranda Barlar\u305  \'c7iz)\cf6 \cb1 \strokec6 \
+\cb5     \cf8 \strokec8 # ==========================================\cf6 \cb1 \strokec6 \
+\cb5     \cb1 \
+\cb5     \cf8 \strokec8 # --- AXES G\'d6RSELLE\uc0\u350 T\u304 RME ---\cf6 \cb1 \strokec6 \
+\cb5     \cf4 \strokec4 for\cf6 \strokec6  \cf9 \strokec9 i\cf6 \strokec6  \cf4 \strokec4 in\cf6 \strokec6  \cf7 \strokec7 range\cf6 \strokec6 (\cf9 \strokec9 joystick\cf6 \strokec6 .get_numaxes()):\cb1 \
+\cb5         \cf9 \strokec9 val\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf9 \strokec9 joystick\cf6 \strokec6 .get_axis(\cf9 \strokec9 i\cf6 \strokec6 )\cb1 \
+\cb5         \cf9 \strokec9 bar_len\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf7 \strokec7 int\cf6 \strokec6 ((\cf9 \strokec9 val\cf6 \strokec6  \cf11 \strokec11 +\cf6 \strokec6  \cf13 \strokec13 1.0\cf6 \strokec6 ) \cf11 \strokec11 *\cf6 \strokec6  \cf13 \strokec13 100\cf6 \strokec6 )\cb1 \
+\cb5         \cf9 \strokec9 bar_y\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf12 \strokec12 Y_START\cf6 \strokec6  \cf11 \strokec11 +\cf6 \strokec6  \cf9 \strokec9 i\cf6 \strokec6  \cf11 \strokec11 *\cf6 \strokec6  \cf12 \strokec12 Y_SPACING\cf6 \cb1 \strokec6 \
+\cb5         \cb1 \
+\cb5         \cf8 \strokec8 # Arkaplan\cf6 \cb1 \strokec6 \
+\cb5         \cf7 \strokec7 pygame\cf6 \strokec6 .draw.rect(\cf9 \strokec9 screen\cf6 \strokec6 , (\cf13 \strokec13 50\cf6 \strokec6 ,\cf13 \strokec13 50\cf6 \strokec6 ,\cf13 \strokec13 50\cf6 \strokec6 ), (\cf12 \strokec12 LEFT_COLUMN_X\cf6 \strokec6 , \cf9 \strokec9 bar_y\cf6 \strokec6 , \cf13 \strokec13 200\cf6 \strokec6 , \cf13 \strokec13 18\cf6 \strokec6 ))\cb1 \
+\cb5         \cf8 \strokec8 # De\uc0\u287 er Bar\u305 \cf6 \cb1 \strokec6 \
+\cb5         \cf7 \strokec7 pygame\cf6 \strokec6 .draw.rect(\cf9 \strokec9 screen\cf6 \strokec6 , (\cf13 \strokec13 0\cf6 \strokec6 ,\cf13 \strokec13 180\cf6 \strokec6 ,\cf13 \strokec13 80\cf6 \strokec6 ), (\cf12 \strokec12 LEFT_COLUMN_X\cf6 \strokec6 , \cf9 \strokec9 bar_y\cf6 \strokec6 , \cf9 \strokec9 bar_len\cf6 \strokec6 , \cf13 \strokec13 18\cf6 \strokec6 ))\cb1 \
+\cb5         \cf8 \strokec8 # Yaz\uc0\u305 \cf6 \cb1 \strokec6 \
+\cb5         \cf9 \strokec9 text\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf9 \strokec9 font\cf6 \strokec6 .render(\cf15 \strokec15 f\cf10 \strokec10 "Axis \cf15 \strokec15 \{\cf9 \strokec9 i\cf15 \strokec15 \}\cf10 \strokec10 : \cf15 \strokec15 \{\cf9 \strokec9 val\cf15 \strokec15 :.3f\}\cf10 \strokec10 "\cf6 \strokec6 , \cf15 \strokec15 True\cf6 \strokec6 , (\cf13 \strokec13 230\cf6 \strokec6 ,\cf13 \strokec13 230\cf6 \strokec6 ,\cf13 \strokec13 230\cf6 \strokec6 ))\cb1 \
+\cb5         \cf9 \strokec9 screen\cf6 \strokec6 .blit(\cf9 \strokec9 text\cf6 \strokec6 , (\cf12 \strokec12 LEFT_COLUMN_X\cf6 \strokec6  \cf11 \strokec11 +\cf6 \strokec6  \cf13 \strokec13 220\cf6 \strokec6 , \cf9 \strokec9 bar_y\cf6 \strokec6 ))\cb1 \
+\
+\cb5     \cf8 \strokec8 # --- BUTTONS G\'d6RSELLE\uc0\u350 T\u304 RME ---\cf6 \cb1 \strokec6 \
+\cb5     \cf4 \strokec4 for\cf6 \strokec6  \cf9 \strokec9 i\cf6 \strokec6  \cf4 \strokec4 in\cf6 \strokec6  \cf7 \strokec7 range\cf6 \strokec6 (\cf9 \strokec9 joystick\cf6 \strokec6 .get_numbuttons()):\cb1 \
+\cb5         \cf9 \strokec9 state\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf9 \strokec9 joystick\cf6 \strokec6 .get_button(\cf9 \strokec9 i\cf6 \strokec6 )\cb1 \
+\cb5         \cf9 \strokec9 button_y\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf12 \strokec12 Y_START\cf6 \strokec6  \cf11 \strokec11 +\cf6 \strokec6  \cf9 \strokec9 i\cf6 \strokec6  \cf11 \strokec11 *\cf6 \strokec6  \cf12 \strokec12 Y_SPACING\cf6 \strokec6  \cf11 \strokec11 +\cf6 \strokec6  \cf13 \strokec13 150\cf6 \cb1 \strokec6 \
+\cb5         \cf9 \strokec9 color\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  (\cf13 \strokec13 220\cf6 \strokec6 ,\cf13 \strokec13 60\cf6 \strokec6 ,\cf13 \strokec13 60\cf6 \strokec6 ) \cf4 \strokec4 if\cf6 \strokec6  \cf9 \strokec9 state\cf6 \strokec6  \cf4 \strokec4 else\cf6 \strokec6  (\cf13 \strokec13 80\cf6 \strokec6 ,\cf13 \strokec13 80\cf6 \strokec6 ,\cf13 \strokec13 90\cf6 \strokec6 )\cb1 \
+\cb5         \cf7 \strokec7 pygame\cf6 \strokec6 .draw.rect(\cf9 \strokec9 screen\cf6 \strokec6 , \cf9 \strokec9 color\cf6 \strokec6 , (\cf12 \strokec12 RIGHT_COLUMN_X\cf6 \strokec6 , \cf9 \strokec9 button_y\cf6 \strokec6 , \cf13 \strokec13 100\cf6 \strokec6 , \cf13 \strokec13 18\cf6 \strokec6 ))\cb1 \
+\cb5         \cf9 \strokec9 text\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf9 \strokec9 font\cf6 \strokec6 .render(\cf15 \strokec15 f\cf10 \strokec10 "Button \cf15 \strokec15 \{\cf9 \strokec9 i\cf15 \strokec15 \}\cf10 \strokec10 "\cf6 \strokec6 , \cf15 \strokec15 True\cf6 \strokec6 , (\cf13 \strokec13 230\cf6 \strokec6 ,\cf13 \strokec13 230\cf6 \strokec6 ,\cf13 \strokec13 230\cf6 \strokec6 ))\cb1 \
+\cb5         \cf9 \strokec9 screen\cf6 \strokec6 .blit(\cf9 \strokec9 text\cf6 \strokec6 , (\cf12 \strokec12 RIGHT_COLUMN_X\cf6 \strokec6  \cf11 \strokec11 +\cf6 \strokec6  \cf13 \strokec13 150\cf6 \strokec6 , \cf9 \strokec9 button_y\cf6 \strokec6 ))\cb1 \
+\
+\cb5     \cf8 \strokec8 # ==========================================\cf6 \cb1 \strokec6 \
+\cb5     \cf8 \strokec8 # 2. VER\uc0\u304  G\'d6NDERME (HEARTBEAT)\cf6 \cb1 \strokec6 \
+\cb5     \cf8 \strokec8 # De\uc0\u287 i\u351 im olsun olmas\u305 n, kritik motor verilerini\cf6 \cb1 \strokec6 \
+\cb5     \cf8 \strokec8 # her 50ms'de bir zorla g\'f6nderiyoruz.\cf6 \cb1 \strokec6 \
+\cb5     \cf8 \strokec8 # ==========================================\cf6 \cb1 \strokec6 \
+\cb5     \cb1 \
+\cb5     \cf4 \strokec4 if\cf6 \strokec6  \cf9 \strokec9 current_time\cf6 \strokec6  \cf11 \strokec11 -\cf6 \strokec6  \cf9 \strokec9 last_send_time\cf6 \strokec6  \cf11 \strokec11 >\cf6 \strokec6  \cf12 \strokec12 SEND_INTERVAL\cf6 \strokec6 :\cb1 \
+\cb5         \cf9 \strokec9 last_send_time\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf9 \strokec9 current_time\cf6 \cb1 \strokec6 \
+\cb5         \cb1 \
+\cb5         \cf8 \strokec8 # Senin kulland\uc0\u305 \u287 \u305 n kritik eksenleri al\u305 yoruz\cf6 \cb1 \strokec6 \
+\cb5         \cf8 \strokec8 # (PS5 kolunda buton 9-10 yerine Axis 10-11 olarak g\'f6r\'fcnd\'fc\uc0\u287 \'fc i\'e7in Axis okuyoruz)\cf6 \cb1 \strokec6 \
+\cb5         \cf8 \strokec8 # E\uc0\u287 er senin PC'de bunlar farkl\u305  ID ise buray\u305  g\'fcncellemelisin.\cf6 \cb1 \strokec6 \
+\cb5         \cb1 \
+\cb5         \cf9 \strokec9 axis_L_Fwd\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf9 \strokec9 joystick\cf6 \strokec6 .get_axis(\cf13 \strokec13 5\cf6 \strokec6 )   \cf8 \strokec8 # Sol \uc0\u304 leri\cf6 \cb1 \strokec6 \
+\cb5         \cf9 \strokec9 axis_L_Back\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf9 \strokec9 joystick\cf6 \strokec6 .get_axis(\cf13 \strokec13 11\cf6 \strokec6 ) \cf8 \strokec8 # Sol Geri (Eski buton 10 variable)\cf6 \cb1 \strokec6 \
+\cb5         \cf9 \strokec9 axis_R_Fwd\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf9 \strokec9 joystick\cf6 \strokec6 .get_axis(\cf13 \strokec13 4\cf6 \strokec6 )   \cf8 \strokec8 # Sa\uc0\u287  \u304 leri\cf6 \cb1 \strokec6 \
+\cb5         \cf9 \strokec9 axis_R_Back\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  \cf9 \strokec9 joystick\cf6 \strokec6 .get_axis(\cf13 \strokec13 10\cf6 \strokec6 ) \cf8 \strokec8 # Sa\uc0\u287  Geri (Eski buton 9 variable)\cf6 \cb1 \strokec6 \
+\cb5         \cb1 \
+\cb5         \cf8 \strokec8 # Paketleri Haz\uc0\u305 rla\cf6 \cb1 \strokec6 \
+\cb5         \cf9 \strokec9 msgs\cf6 \strokec6  \cf11 \strokec11 =\cf6 \strokec6  [\cb1 \
+\cb5             \cf15 \strokec15 f\cf10 \strokec10 "AXIS 5 \cf15 \strokec15 \{\cf9 \strokec9 axis_L_Fwd\cf15 \strokec15 :.3f\}\cf10 \strokec10 "\cf6 \strokec6 ,\cb1 \
+\cb5             \cf15 \strokec15 f\cf10 \strokec10 "AXIS 11 \cf15 \strokec15 \{\cf9 \strokec9 axis_L_Back\cf15 \strokec15 :.3f\}\cf10 \strokec10 "\cf6 \strokec6 ,\cb1 \
+\cb5             \cf15 \strokec15 f\cf10 \strokec10 "AXIS 4 \cf15 \strokec15 \{\cf9 \strokec9 axis_R_Fwd\cf15 \strokec15 :.3f\}\cf10 \strokec10 "\cf6 \strokec6 ,\cb1 \
+\cb5             \cf15 \strokec15 f\cf10 \strokec10 "AXIS 10 \cf15 \strokec15 \{\cf9 \strokec9 axis_R_Back\cf15 \strokec15 :.3f\}\cf10 \strokec10 "\cf6 \cb1 \strokec6 \
+\cb5         ]\cb1 \
+\cb5         \cb1 \
+\cb5         \cf8 \strokec8 # Hepsini Arduino'ya f\uc0\u305 rlat\cf6 \cb1 \strokec6 \
+\cb5         \cf4 \strokec4 for\cf6 \strokec6  \cf9 \strokec9 msg\cf6 \strokec6  \cf4 \strokec4 in\cf6 \strokec6  \cf9 \strokec9 msgs\cf6 \strokec6 :\cb1 \
+\cb5             \cf9 \strokec9 sock\cf6 \strokec6 .\cf14 \strokec14 sendto\cf6 \strokec6 (\cf9 \strokec9 msg\cf6 \strokec6 .\cf14 \strokec14 encode\cf6 \strokec6 (), (\cf12 \strokec12 ESP32_IP\cf6 \strokec6 , \cf12 \strokec12 ESP32_PORT\cf6 \strokec6 ))\cb1 \
+\
+\cb5     \cf7 \strokec7 pygame\cf6 \strokec6 .display.flip()\cb1 \
+\cb5     \cf9 \strokec9 clock\cf6 \strokec6 .tick(\cf13 \strokec13 60\cf6 \strokec6 )\cb1 \
+\
+\cf7 \cb5 \strokec7 pygame\cf6 \strokec6 .quit()\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\fs24 \cf2 \strokec3 \
+\
+Arduino Kodu:\
+\cf3 \
+\pard\pardeftab720\partightenfactor0
+\cf16 \cb17 \outl0\strokewidth0 \
+\
+#include\cf18  \cf19 <WiFi.h>\cf18 \cb1 \
+\cf16 \cb17 #include\cf18  \cf19 <WiFiUdp.h>\cf18 \cb1 \
+\
+\cf20 \cb17 // ======================= PIN AYARLARI =======================\cf18 \cb1 \
+\cf20 \cb17 // SA\uc0\u286  GRUP (Fiziksel Sa\u287  Taraf)\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 FL_AIN1\cf18  \cf19 5\cf20    // Sa\uc0\u287  \'d6n Motor IN1\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 FL_AIN2\cf18  \cf19 4\cf20    // Sa\uc0\u287  \'d6n Motor IN2\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 FL_PWM\cf18   \cf19 6\cf20    // Sa\uc0\u287  \'d6n Motor PWM\cf18 \cb1 \
+\
+\cf16 \cb17 #define\cf18  \cf21 RL_AIN1\cf18  \cf19 11\cf20   // Sa\uc0\u287  Arka Motor IN1\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 RL_AIN2\cf18  \cf19 12\cf20   // Sa\uc0\u287  Arka Motor IN2\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 RL_PWM\cf18   \cf19 13\cf20   // Sa\uc0\u287  Arka Motor PWM\cf18 \cb1 \
+\
+\cf20 \cb17 // SOL GRUP (Fiziksel Sol Taraf)\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 FR_AIN1\cf18  \cf19 15\cf20   // Sol \'d6n Motor IN1\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 FR_AIN2\cf18  \cf19 16\cf20   // Sol \'d6n Motor IN2\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 FR_PWM\cf18   \cf19 17\cf20   // Sol \'d6n Motor PWM\cf18 \cb1 \
+\
+\cf16 \cb17 #define\cf18  \cf21 RR_AIN1\cf18  \cf19 2\cf20    // Sol Arka Motor IN1\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 RR_AIN2\cf18  \cf19 42\cf20   // Sol Arka Motor IN2\cf18 \cb1 \
+\cf16 \cb17 #define\cf18  \cf21 RR_PWM\cf18   \cf19 41\cf20   // Sol Arka Motor PWM\cf18 \cb1 \
+\
+\cf20 \cb17 // ======================= WIFI & UDP AYARLARI =======================\cf18 \cb1 \
+\cf22 \cb17 const\cf18  \cf22 char\cf18 * ssid = \cf19 "LAGARIMEDYA"\cf18 ;\cb1 \
+\cf22 \cb17 const\cf18  \cf22 char\cf18 * password = \cf19 "lagari5253"\cf18 ;\cb1 \
+\cb17 WiFiUDP udp;\cb1 \
+\cf22 \cb17 unsigned\cf18  \cf22 int\cf18  localPort = \cf19 4210\cf18 ;\cb1 \
+\cf22 \cb17 char\cf18  \cf21 packetBuffer\cf18 [\cf19 255\cf18 ];\cb1 \
+\
+\cf20 \cb17 // ======================= KONTROL DE\uc0\u286 \u304 \u350 KENLER\u304  =======================\cf18 \cb1 \
+\cf22 \cb17 float\cf18  val_axis0 = \cf19 0.0\cf18 ;\cf20           // Axis 0: Y\'f6n (Sa\uc0\u287 /Sol Yenge\'e7)\cf18 \cb1 \
+\cf22 \cb17 float\cf18  val_axis1 = \cf19 0.0\cf18 ;\cf20           // Axis 1: D\'f6n\'fc\uc0\u351  (Sa\u287 /Sol 360)\cf18 \cb1 \
+\cf22 \cb17 float\cf18  val_throttle_fwd = -\cf19 1.0\cf18 ;\cf20   // Axis 5: \uc0\u304 leri Gaz\cf18 \cb1 \
+\cf22 \cb17 float\cf18  val_throttle_back = -\cf19 1.0\cf18 ;\cf20  // Axis 4: Geri Gaz\cf18 \cb1 \
+\
+\cf22 \cb17 unsigned\cf18  \cf22 long\cf18  lastPacketTime = \cf19 0\cf18 ;\cb1 \
+\cf22 \cb17 const\cf18  \cf22 int\cf18  MAX_SPEED = \cf19 255\cf18 ;\cb1 \
+\
+\cf20 \cb17 // ======================= KURULUM =======================\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 setup\cf18 () \{\cb1 \
+\cb17   \cf21 Serial\cf18 .\cf21 begin\cf18 (\cf19 115200\cf18 );\cb1 \
+\cb17   \cf21 delay\cf18 (\cf19 100\cf18 );\cb1 \
+\
+\cb17   \cf21 Serial\cf18 .\cf21 println\cf18 (\cf19 "\\n\\n==================================="\cf18 );\cb1 \
+\cb17   \cf21 Serial\cf18 .\cf21 print\cf18 (\cf19 "WiFi Baglaniyor: "\cf18 );\cb1 \
+\cb17   \cf21 Serial\cf18 .\cf21 println\cf18 (ssid);\cb1 \
+\
+\cb17   \cf21 WiFi\cf18 .\cf21 begin\cf18 (ssid, password);\cb1 \
+\cb17   \cb1 \
+\cb17   \cf16 while\cf18  (\cf21 WiFi\cf18 .\cf21 status\cf18 () != WL_CONNECTED) \{\cb1 \
+\cb17     \cf21 delay\cf18 (\cf19 500\cf18 );\cb1 \
+\cb17     \cf21 Serial\cf18 .\cf21 print\cf18 (\cf19 "."\cf18 );\cb1 \
+\cb17   \}\cb1 \
+\
+\cb17   \cf21 udp\cf18 .\cf21 begin\cf18 (localPort);\cb1 \
+\
+\cb17   \cf21 Serial\cf18 .\cf21 println\cf18 (\cf19 "\\n\\n==================================="\cf18 );\cb1 \
+\cb17   \cf21 Serial\cf18 .\cf21 println\cf18 (\cf19 "     BAGLANTI BASARILI!            "\cf18 );\cb1 \
+\cb17   \cf21 Serial\cf18 .\cf21 print\cf18 (\cf19 "IP Adresi: "\cf18 );\cb1 \
+\cb17   \cf21 Serial\cf18 .\cf21 println\cf18 (\cf21 WiFi\cf18 .\cf21 localIP\cf18 ());\cb1 \
+\cb17   \cf21 Serial\cf18 .\cf21 print\cf18 (\cf19 "Port:      "\cf18 );\cb1 \
+\cb17   \cf21 Serial\cf18 .\cf21 println\cf18 (localPort);\cb1 \
+\cb17   \cf21 Serial\cf18 .\cf21 println\cf18 (\cf19 "===================================\\n"\cf18 );\cb1 \
+\
+\cf20 \cb17   // Pin Modlar\uc0\u305 \cf18 \cb1 \
+\cb17   \cf21 pinMode\cf18 (RR_AIN1, OUTPUT); \cf21 pinMode\cf18 (RR_AIN2, OUTPUT); \cf21 pinMode\cf18 (RR_PWM, OUTPUT);\cb1 \
+\cb17   \cf21 pinMode\cf18 (RL_AIN1, OUTPUT); \cf21 pinMode\cf18 (RL_AIN2, OUTPUT); \cf21 pinMode\cf18 (RL_PWM, OUTPUT);\cb1 \
+\cb17   \cf21 pinMode\cf18 (FR_AIN1, OUTPUT); \cf21 pinMode\cf18 (FR_AIN2, OUTPUT); \cf21 pinMode\cf18 (FR_PWM, OUTPUT);\cb1 \
+\cb17   \cf21 pinMode\cf18 (FL_AIN1, OUTPUT); \cf21 pinMode\cf18 (FL_AIN2, OUTPUT); \cf21 pinMode\cf18 (FL_PWM, OUTPUT);\cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // ======================= ANA D\'d6NG\'dc =======================\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 loop\cf18 () \{\cb1 \
+\cb17   \cf22 int\cf18  packetSize = \cf21 udp\cf18 .\cf21 parsePacket\cf18 ();\cb1 \
+\cb17   \cb1 \
+\cb17   \cf16 if\cf18  (packetSize) \{\cb1 \
+\cb17     \cf22 int\cf18  len = \cf21 udp\cf18 .\cf21 read\cf18 (packetBuffer, \cf19 255\cf18 );\cb1 \
+\cb17     \cf16 if\cf18  (len > \cf19 0\cf18 ) \cf21 packetBuffer\cf18 [len] = \cf19 0\cf18 ;\cb1 \
+\cb17     \cb1 \
+\cb17     String msg = \cf21 String\cf18 (packetBuffer);\cb1 \
+\cb17     lastPacketTime = \cf21 millis\cf18 ();\cb1 \
+\cb17     \cb1 \
+\cb17     \cf21 parseCommand\cf18 (msg);\cb1 \
+\cb17     \cf21 processMovement\cf18 ();\cb1 \
+\cb17   \}\cb1 \
+\
+\cf20 \cb17   // G\'fcvenlik: 2 saniye sinyal yoksa motorlar\uc0\u305  durdur\cf18 \cb1 \
+\cb17   \cf16 if\cf18  (\cf21 millis\cf18 () - lastPacketTime > \cf19 2000\cf18 ) \{\cb1 \
+\cb17     \cf21 dur\cf18 ();\cb1 \
+\cb17   \}\cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // ======================= VER\uc0\u304  \u304 \u350 LEME =======================\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 parseCommand\cf18 (String msg) \{\cb1 \
+\cb17   \cf16 if\cf18  (\cf21 msg\cf18 .\cf21 startsWith\cf18 (\cf19 "AXIS"\cf18 )) \{\cb1 \
+\cb17     \cf22 int\cf18  firstSpace = \cf21 msg\cf18 .\cf21 indexOf\cf18 (' ');\cb1 \
+\cb17     \cf22 int\cf18  secondSpace = \cf21 msg\cf18 .\cf21 indexOf\cf18 (' ', firstSpace + \cf19 1\cf18 );\cb1 \
+\cb17     \cb1 \
+\cb17     \cf22 int\cf18  axisId = \cf21 msg\cf18 .\cf21 substring\cf18 (firstSpace + \cf19 1\cf18 , secondSpace).\cf21 toInt\cf18 ();\cb1 \
+\cb17     \cf22 float\cf18  val = \cf21 msg\cf18 .\cf21 substring\cf18 (secondSpace + \cf19 1\cf18 ).\cf21 toFloat\cf18 ();\cb1 \
+\cb17     \cb1 \
+\cb17     \cf16 if\cf18  (axisId == \cf19 0\cf18 ) val_axis0 = val;\cf20               // Axis 0: Y\'f6n (Yenge\'e7)\cf18 \cb1 \
+\cb17     \cf16 else\cf18  \cf16 if\cf18  (axisId == \cf19 1\cf18 ) val_axis1 = val;\cf20          // Axis 1: D\'f6n\'fc\uc0\u351 \cf18 \cb1 \
+\cb17     \cf16 else\cf18  \cf16 if\cf18  (axisId == \cf19 5\cf18 ) val_throttle_fwd = val;\cf20   // Axis 5: \uc0\u304 leri Gaz\cf18 \cb1 \
+\cb17     \cf16 else\cf18  \cf16 if\cf18  (axisId == \cf19 4\cf18 ) val_throttle_back = val;\cf20  // Axis 4: Geri Gaz\cf18 \cb1 \
+\cb17   \}\cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // Joystick de\uc0\u287 erlerini temizle (Deadzone uygula)\cf18 \cb1 \
+\cf22 \cb17 float\cf18  \cf21 normalizeStick\cf18 (\cf22 float\cf18  input) \{\cb1 \
+\cb17   \cf16 if\cf18  (\cf21 abs\cf18 (input) < \cf19 0.05\cf18 ) \cf16 return\cf18  \cf19 0.0\cf18 ;\cb1 \
+\cb17   \cf16 return\cf18  input;\cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // Tetik de\uc0\u287 erlerini 0-1 aral\u305 \u287 \u305 na \'e7evir\cf18 \cb1 \
+\cf22 \cb17 float\cf18  \cf21 normalizeTrigger\cf18 (\cf22 float\cf18  input) \{\cb1 \
+\cb17   \cf22 float\cf18  norm = (input + \cf19 1.0\cf18 ) / \cf19 2.0\cf18 ;\cb1 \
+\cb17   \cf16 if\cf18  (norm < \cf19 0.05\cf18 ) \cf16 return\cf18  \cf19 0.0\cf18 ;\cb1 \
+\cb17   \cf16 if\cf18  (norm > \cf19 1.0\cf18 ) \cf16 return\cf18  \cf19 1.0\cf18 ;\cb1 \
+\cb17   \cf16 return\cf18  norm;\cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // ======================= HAREKET KONTROL\'dc =======================\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 processMovement\cf18 () \{\cb1 \
+\cf20 \cb17   // Gaz de\uc0\u287 erlerini hesapla\cf18 \cb1 \
+\cb17   \cf22 float\cf18  fwd = \cf21 normalizeTrigger\cf18 (val_throttle_fwd);\cb1 \
+\cb17   \cf22 float\cf18  back = \cf21 normalizeTrigger\cf18 (val_throttle_back);\cb1 \
+\cb17   \cf22 float\cf18  throttle = fwd - back;\cf20  // Net gaz (pozitif=ileri, negatif=geri)\cf18 \cb1 \
+\cb17   \cb1 \
+\cf20 \cb17   // Y\'f6n de\uc0\u287 erlerini al\cf18 \cb1 \
+\cb17   \cf22 float\cf18  yonAxis = \cf21 normalizeStick\cf18 (val_axis0);\cf20    // Axis 0: Sa\uc0\u287 /Sol Yenge\'e7\cf18 \cb1 \
+\cb17   \cf22 float\cf18  donusAxis = \cf21 normalizeStick\cf18 (val_axis1);\cf20  // Axis 1: Sa\uc0\u287 /Sol 360\cf18 \cb1 \
+\cb17   \cb1 \
+\cb17   \cf22 int\cf18  speed = (\cf22 int\cf18 )(\cf21 abs\cf18 (throttle) * MAX_SPEED);\cb1 \
+\cb17   \cb1 \
+\cf20 \cb17   // \'d6NCEL\uc0\u304 K SIRASI: \'d6nce basit hareketleri kontrol et\cf18 \cb1 \
+\cb17   \cb1 \
+\cf20 \cb17   // 1. Sadece \uc0\u304 leri/Geri Hareket\cf18 \cb1 \
+\cb17   \cf16 if\cf18  (\cf21 abs\cf18 (throttle) > \cf19 0.1\cf18  && \cf21 abs\cf18 (yonAxis) < \cf19 0.1\cf18  && \cf21 abs\cf18 (donusAxis) < \cf19 0.1\cf18 ) \{\cb1 \
+\cb17     \cf16 if\cf18  (throttle > \cf19 0\cf18 ) \cf21 ileri\cf18 (speed);\cb1 \
+\cb17     \cf16 else\cf18  \cf21 geri\cf18 (speed);\cb1 \
+\cb17   \}\cb1 \
+\cf20 \cb17   // 2. Sadece Yenge\'e7 Hareketi (Sa\uc0\u287 a/Sola Kayma)\cf18 \cb1 \
+\cb17   \cf16 else\cf18  \cf16 if\cf18  (\cf21 abs\cf18 (yonAxis) > \cf19 0.1\cf18  && \cf21 abs\cf18 (throttle) < \cf19 0.1\cf18  && \cf21 abs\cf18 (donusAxis) < \cf19 0.1\cf18 ) \{\cb1 \
+\cb17     \cf22 int\cf18  yengecSpeed = (\cf22 int\cf18 )(\cf21 abs\cf18 (yonAxis) * MAX_SPEED);\cb1 \
+\cb17     \cf16 if\cf18  (yonAxis > \cf19 0\cf18 ) \cf21 sagyengec\cf18 (yengecSpeed);\cf20       // Sa\uc0\u287 a yenge\'e7\cf18 \cb1 \
+\cb17     \cf16 else\cf18  \cf21 solyengec\cf18 (yengecSpeed);\cf20                   // Sola yenge\'e7\cf18 \cb1 \
+\cb17   \}\cb1 \
+\cf20 \cb17   // 3. Sadece D\'f6n\'fc\uc0\u351  (Kendi Etraf\u305 nda 360)\cf18 \cb1 \
+\cb17   \cf16 else\cf18  \cf16 if\cf18  (\cf21 abs\cf18 (donusAxis) > \cf19 0.1\cf18  && \cf21 abs\cf18 (throttle) < \cf19 0.1\cf18  && \cf21 abs\cf18 (yonAxis) < \cf19 0.1\cf18 ) \{\cb1 \
+\cb17     \cf22 int\cf18  donusSpeed = (\cf22 int\cf18 )(\cf21 abs\cf18 (donusAxis) * MAX_SPEED);\cb1 \
+\cb17     \cf16 if\cf18  (donusAxis > \cf19 0\cf18 ) \cf21 sag360\cf18 (donusSpeed);\cf20         // Sa\uc0\u287 a d\'f6n\cf18 \cb1 \
+\cb17     \cf16 else\cf18  \cf21 sol360\cf18 (donusSpeed);\cf20                       // Sola d\'f6n\cf18 \cb1 \
+\cb17   \}\cb1 \
+\cf20 \cb17   // 4. Kar\uc0\u305 \u351 \u305 k Hareket (Mecanum Matematik - Vekt\'f6rel Toplama)\cf18 \cb1 \
+\cb17   \cf16 else\cf18  \cf16 if\cf18  (\cf21 abs\cf18 (throttle) > \cf19 0.1\cf18  || \cf21 abs\cf18 (yonAxis) > \cf19 0.1\cf18  || \cf21 abs\cf18 (donusAxis) > \cf19 0.1\cf18 ) \{\cb1 \
+\cb17     \cf21 mecanumHareket\cf18 (throttle, yonAxis, donusAxis);\cb1 \
+\cb17   \}\cb1 \
+\cf20 \cb17   // 5. Hi\'e7bir Girdi Yoksa Dur\cf18 \cb1 \
+\cb17   \cf16 else\cf18  \{\cb1 \
+\cb17     \cf21 dur\cf18 ();\cb1 \
+\cb17   \}\cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // ======================= TEMEL HAREKET FONKS\uc0\u304 YONLARI =======================\cf18 \cb1 \
+\
+\cf20 \cb17 // T\'fcm motorlar ayn\uc0\u305  y\'f6nde ileri d\'f6ner - Robot d\'fcz ileri gider\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 ileri\cf18 (\cf22 int\cf18  speed) \{\cb1 \
+\cb17   \cf21 setMotor\cf18 (FR_AIN1, FR_AIN2, FR_PWM, speed);\cf20    // Sol \'d6n \uc0\u304 leri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RR_AIN1, RR_AIN2, RR_PWM, speed);\cf20    // Sol Arka \uc0\u304 leri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (FL_AIN1, FL_AIN2, FL_PWM, -speed);\cf20    // Sa\uc0\u287  \'d6n \u304 leri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RL_AIN1, RL_AIN2, RL_PWM, -speed);\cf20    // Sa\uc0\u287  Arka \u304 leri\cf18 \cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // T\'fcm motorlar ayn\uc0\u305  y\'f6nde geri d\'f6ner - Robot d\'fcz geri gider\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 geri\cf18 (\cf22 int\cf18  speed) \{\cb1 \
+\cb17   \cf21 setMotor\cf18 (FR_AIN1, FR_AIN2, FR_PWM, -speed);\cf20   // Sol \'d6n Geri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RR_AIN1, RR_AIN2, RR_PWM, -speed);\cf20   // Sol Arka Geri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (FL_AIN1, FL_AIN2, FL_PWM, -speed);\cf20   // Sa\uc0\u287  \'d6n Geri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RL_AIN1, RL_AIN2, RL_PWM, -speed);\cf20   // Sa\uc0\u287  Arka Geri\cf18 \cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // Sa\uc0\u287  motorlar geri, sol motorlar ileri - Robot kendi etraf\u305 nda sa\u287 a d\'f6ner\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 sag360\cf18 (\cf22 int\cf18  speed) \{\cb1 \
+\cb17   \cf21 setMotor\cf18 (FR_AIN1, FR_AIN2, FR_PWM, speed);\cf20    // Sol \'d6n \uc0\u304 leri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RR_AIN1, RR_AIN2, RR_PWM, speed);\cf20    // Sol Arka \uc0\u304 leri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (FL_AIN1, FL_AIN2, FL_PWM, -speed);\cf20   // Sa\uc0\u287  \'d6n Geri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RL_AIN1, RL_AIN2, RL_PWM, -speed);\cf20   // Sa\uc0\u287  Arka Geri\cf18 \cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // Sol motorlar geri, sa\uc0\u287  motorlar ileri - Robot kendi etraf\u305 nda sola d\'f6ner\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 sol360\cf18 (\cf22 int\cf18  speed) \{\cb1 \
+\cb17   \cf21 setMotor\cf18 (FR_AIN1, FR_AIN2, FR_PWM, -speed);\cf20   // Sol \'d6n Geri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RR_AIN1, RR_AIN2, RR_PWM, -speed);\cf20   // Sol Arka Geri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (FL_AIN1, FL_AIN2, FL_PWM, speed);\cf20    // Sa\uc0\u287  \'d6n \u304 leri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RL_AIN1, RL_AIN2, RL_PWM, speed);\cf20    // Sa\uc0\u287  Arka \u304 leri\cf18 \cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // Mecanum yenge\'e7 hareketi - Robot a\'e7\uc0\u305  de\u287 i\u351 tirmeden SOLA kayar\cf18 \cb1 \
+\cf20 \cb17 // Sol \'d6n Geri, Sol Arka \uc0\u304 leri, Sa\u287  \'d6n \u304 leri, Sa\u287  Arka Geri (\'c7aprazlar z\u305 t y\'f6nde)\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 solyengec\cf18 (\cf22 int\cf18  speed) \{\cb1 \
+\cb17   \cf21 setMotor\cf18 (FR_AIN1, FR_AIN2, FR_PWM, -speed);\cf20   // Sol \'d6n Geri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RR_AIN1, RR_AIN2, RR_PWM, speed);\cf20    // Sol Arka \uc0\u304 leri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (FL_AIN1, FL_AIN2, FL_PWM, speed);\cf20    // Sa\uc0\u287  \'d6n \u304 leri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RL_AIN1, RL_AIN2, RL_PWM, -speed);\cf20   // Sa\uc0\u287  Arka Geri\cf18 \cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // Mecanum yenge\'e7 hareketi - Robot a\'e7\uc0\u305  de\u287 i\u351 tirmeden SA\u286 A kayar\cf18 \cb1 \
+\cf20 \cb17 // Sol \'d6n \uc0\u304 leri, Sol Arka Geri, Sa\u287  \'d6n Geri, Sa\u287  Arka \u304 leri (\'c7aprazlar z\u305 t y\'f6nde)\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 sagyengec\cf18 (\cf22 int\cf18  speed) \{\cb1 \
+\cb17   \cf21 setMotor\cf18 (FR_AIN1, FR_AIN2, FR_PWM, speed);\cf20    // Sol \'d6n \uc0\u304 leri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RR_AIN1, RR_AIN2, RR_PWM, -speed);\cf20   // Sol Arka Geri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (FL_AIN1, FL_AIN2, FL_PWM, -speed);\cf20   // Sa\uc0\u287  \'d6n Geri\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (RL_AIN1, RL_AIN2, RL_PWM, speed);\cf20    // Sa\uc0\u287  Arka \u304 leri\cf18 \cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // T\'fcm motorlar\uc0\u305  durdur\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 dur\cf18 () \{\cb1 \
+\cb17   \cf21 setMotor\cf18 (FR_AIN1, FR_AIN2, FR_PWM, \cf19 0\cf18 );\cb1 \
+\cb17   \cf21 setMotor\cf18 (RR_AIN1, RR_AIN2, RR_PWM, \cf19 0\cf18 );\cb1 \
+\cb17   \cf21 setMotor\cf18 (FL_AIN1, FL_AIN2, FL_PWM, \cf19 0\cf18 );\cb1 \
+\cb17   \cf21 setMotor\cf18 (RL_AIN1, RL_AIN2, RL_PWM, \cf19 0\cf18 );\cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // ======================= MECANUM MATEMAT\uc0\u304 K =======================\cf18 \cb1 \
+\cf20 \cb17 // Kar\uc0\u305 \u351 \u305 k hareketler i\'e7in vekt\'f6rel hesaplama (\u304 leri+Sa\u287 a, Geri+Sola+D\'f6n vs.)\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 mecanumHareket\cf18 (\cf22 float\cf18  throttle, \cf22 float\cf18  strafe, \cf22 float\cf18  rotate) \{\cb1 \
+\cf20 \cb17   // Mecanum tekerlek form\'fcl\'fc\cf18 \cb1 \
+\cb17   \cf22 float\cf18  motorFR = throttle + strafe + rotate;\cf20   // Sol \'d6n\cf18 \cb1 \
+\cb17   \cf22 float\cf18  motorRR = throttle - strafe + rotate;\cf20   // Sol Arka\cf18 \cb1 \
+\cb17   \cf22 float\cf18  motorFL = throttle - strafe - rotate;\cf20   // Sa\uc0\u287  \'d6n\cf18 \cb1 \
+\cb17   \cf22 float\cf18  motorRL = throttle + strafe - rotate;\cf20   // Sa\uc0\u287  Arka\cf18 \cb1 \
+\cb17   \cb1 \
+\cf20 \cb17   // Motorlara g\'f6nder\cf18 \cb1 \
+\cb17   \cf21 setMotor\cf18 (FR_AIN1, FR_AIN2, FR_PWM, \cf21 constrainPWM\cf18 (motorFR));\cb1 \
+\cb17   \cf21 setMotor\cf18 (RR_AIN1, RR_AIN2, RR_PWM, \cf21 constrainPWM\cf18 (motorRR));\cb1 \
+\cb17   \cf21 setMotor\cf18 (FL_AIN1, FL_AIN2, FL_PWM, \cf21 constrainPWM\cf18 (motorFL));\cb1 \
+\cb17   \cf21 setMotor\cf18 (RL_AIN1, RL_AIN2, RL_PWM, \cf21 constrainPWM\cf18 (motorRL));\cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // PWM de\uc0\u287 erini -255/+255 aral\u305 \u287 \u305 na s\u305 n\u305 rla\cf18 \cb1 \
+\cf22 \cb17 int\cf18  \cf21 constrainPWM\cf18 (\cf22 float\cf18  power) \{\cb1 \
+\cb17   \cf22 int\cf18  pwm = (\cf22 int\cf18 )(power * MAX_SPEED);\cb1 \
+\cb17   \cf16 if\cf18  (pwm > \cf19 255\cf18 ) \cf16 return\cf18  \cf19 255\cf18 ;\cb1 \
+\cb17   \cf16 if\cf18  (pwm < -\cf19 255\cf18 ) \cf16 return\cf18  -\cf19 255\cf18 ;\cb1 \
+\cb17   \cf16 return\cf18  pwm;\cb1 \
+\cb17 \}\cb1 \
+\
+\cf20 \cb17 // ======================= MOTOR S\'dcR\'dcC\'dc =======================\cf18 \cb1 \
+\cf20 \cb17 // Motor y\'f6n\'fcn\'fc ve h\uc0\u305 z\u305 n\u305  kontrol eder\cf18 \cb1 \
+\cf22 \cb17 void\cf18  \cf21 setMotor\cf18 (\cf22 int\cf18  pinIN1, \cf22 int\cf18  pinIN2, \cf22 int\cf18  pinPWM, \cf22 int\cf18  speedVal) \{\cb1 \
+\cb17   \cf16 if\cf18  (speedVal > \cf19 0\cf18 ) \{\cb1 \
+\cb17     \cf21 digitalWrite\cf18 (pinIN1, HIGH);\cb1 \
+\cb17     \cf21 digitalWrite\cf18 (pinIN2, LOW);\cb1 \
+\cb17     \cf21 analogWrite\cf18 (pinPWM, \cf21 abs\cf18 (speedVal));\cb1 \
+\cb17   \} \cf16 else\cf18  \cf16 if\cf18  (speedVal < \cf19 0\cf18 ) \{\cb1 \
+\cb17     \cf21 digitalWrite\cf18 (pinIN1, LOW);\cb1 \
+\cb17     \cf21 digitalWrite\cf18 (pinIN2, HIGH);\cb1 \
+\cb17     \cf21 analogWrite\cf18 (pinPWM, \cf21 abs\cf18 (speedVal));\cb1 \
+\cb17   \} \cf16 else\cf18  \{\cb1 \
+\cb17     \cf21 digitalWrite\cf18 (pinIN1, LOW);\cb1 \
+\cb17     \cf21 digitalWrite\cf18 (pinIN2, LOW);\cb1 \
+\cb17     \cf21 analogWrite\cf18 (pinPWM, \cf19 0\cf18 );\cb1 \
+\cb17   \}\cb1 \
+\cb17 \}\cf3 \cb1 \outl0\strokewidth0 \strokec3 \
+\pard\pardeftab720\partightenfactor0
+\cf3 \
+\
+\
+\cf2 \uc0\u350 imdi robotta 4 adet tb6612FNG motor s\'fcr\'fcc\'fc var ve her bir motor s\'fcr\'fcc\'fc 1 motoru kontrol ediyor pinleri zaten belirttim kodda. \u351 imdi omni directional tekerlerimiz var robotta 4 adet motorumuz var. \u350 imdi tank d\'f6n\'fc\u351 \'fc(kendi etraf\u305 nda 360 d\'f6n\'fc\u351 ), d\'fcmd\'fcz ileri ve d\'fcmd\'fcz geri. \u350 imdi bunlar\u305 n mixlenerek \'e7al\u305 \u351 mas\u305  vb de var. \u350 imdi kontrolc\'fc kodu python codu ile gelen axis verilerini okuyacak ve axis 5 sa\u287  taraftaki motorlar\u305  sadece!!! \u304 leri y\'f6nde hareket ettirecek. \u304 le y\'f6nde gaz. Axis 11 ise sa\u287  taraftaki motorlar\u305  sadece!!! Geriye \'e7al\u305 \u351 t\u305 r\u305 yor. Tank d\'f6n\'fc\u351 \'fcn\'fc manuel yapar\u305 m siktir et. Axis 4 sol taraftaki motorlar\u305 (front left/rear left) sadece!!! \u304 leri y\'f6nde \'e7al\u305 \u351 t\u305 racak. Axis 10 ise sol taraftaki motorlar\u305  sadece!!! Geri y\'f6nde \'e7al\u305 \u351 t\u305 racak. PWM ile \'e7al\u305 \u351 acak sistemler. Overkill yapma. Kodun anas\u305 n\u305  sikme. Sadece dediklerim olsun. Wifi ile data alma k\u305 sm\u305 na falan kar\u305 \u351 \u305 rsan serverlerini bombalar\u305 m \
+\
+}
