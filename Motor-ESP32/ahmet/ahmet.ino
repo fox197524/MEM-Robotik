@@ -64,7 +64,7 @@ void loop() {
   geri();
   delay(1000);
   dur();
-  delay(100);
+  delay(1000);
   sag360();
   delay(1000);
 }

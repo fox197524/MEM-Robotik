@@ -1,4 +1,7 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
+
 // --- MOTOR 4 PIN DEFINITIONS 
 const int RL_PIN_PWM = 7;   // Speed Control (PWM) yeşil
 const int RL_PIN_IN2 = 8;   // Direction 1.        turuncu
@@ -21,12 +24,22 @@ const int PWM = 200; // Full speed
 const int PWMS = 0; // 
 
 
+// --- WIFI ---
+const char* ssid = "LAGARIMEDYA";
+const char* password = "lagari5253";
+WiFiUDP udp;
+unsigned int localPort = 4210;
+char packetBuffer[255];
+
+
+float axis0 = 0, axis2 = 0, axis4 = -1, axis5 = -1;
+float p0 = 0, p2 = 0, p4 = -1, p5 = -1; // Previous values for change detection
 
 void setup() {
   Serial.begin(115200);
   Serial.print("code by ""Dead To AI"" Community");
 
-  
+  dur();
 
   pinMode(RL_PIN_PWM, OUTPUT);
   pinMode(RL_PIN_IN1, OUTPUT);
@@ -40,22 +53,26 @@ void setup() {
   pinMode(FR_PIN_PWM, OUTPUT);
   pinMode(FR_PIN_IN1, OUTPUT);
   pinMode(FR_PIN_IN2, OUTPUT);
+
+
+    WiFi.begin(ssid, password);
+  Serial.print("Connecting WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
+  udp.begin(localPort);
+ 
+  
+
 }
 
 void loop() {
  
-
-dur ();
-delay(1000);
-ileri ();
-delay(1000);
-dur();
-geri ();
-delay(1000);
-dur();
-sag360 ();
-delay(1000);
-dur();
+if(axis5 >= -0.5){
+  ileri();
+}
 
 
 }
