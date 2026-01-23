@@ -1,6 +1,6 @@
 #include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiUdp.h>
+
+
 
 // --- MOTOR 4 PIN DEFINITIONS 
 const int RL_PIN_PWM = 7;   // Speed Control (PWM) yeşil
@@ -21,27 +21,15 @@ const int FR_PIN_IN1 = 6;
 
 // Configuration
 const int PWM = 200; // Full speed
-const int PWMS = 0; // Full speed
+const int PWMS = 0; // 
 
-// ======================= WIFI AYARLARI =======================
-const char* ssid = "LAGARIMEDYA";
-const char* password = "lagari5253";
-WiFiUDP udp;
-unsigned int localPort = 4210;
-char packetBuffer[255];
-unsigned long lastPacketTime = 0;
-const int MAX_SPEED = 255; 
+
 
 void setup() {
   Serial.begin(115200);
   Serial.print("code by ""Dead To AI"" Community");
 
   
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-  }
-  udp.begin(localPort);
 
   pinMode(RL_PIN_PWM, OUTPUT);
   pinMode(RL_PIN_IN1, OUTPUT);
@@ -58,24 +46,10 @@ void setup() {
 }
 
 void loop() {
-  int packetSize = udp.parsePacket();
+ 
   
-  if (packetSize) {
-    int len = udp.read(packetBuffer, 255);
-    if (len > 0) packetBuffer[len] = 0;
-    
-    String msg = String(packetBuffer);
-    lastPacketTime = millis();
-    
-    parseCommand(msg);
-    moveVehicle();
-  }
-    // Güvenlik: 2 saniye sinyal yoksa dur
-  if (millis() - lastPacketTime > 2000) {
-    stopMotors();
-  }
-  
-
+dur ();
+delay(1000);
 ileri ();
 delay(1000);
 dur ();
@@ -83,23 +57,7 @@ delay(1000);
 geri ();
 delay(1000);
 dur ();
-delay(1000);
-sag ();
-delay(1000);
-dur ();
-delay(1000);
-sol ();
-delay(1000);
-dur ();
-delay(1000);
-sag360 ();
-delay(1000);
-dur ();
-delay(1000);
-sol360 ();
-delay(1000);
-dur ();
-delay(1000);
+
 
 }
 // ============ Controller Trigger Convert Fonksiyonu ============
@@ -129,8 +87,8 @@ void ileri() {
   digitalWrite(RL_PIN_IN1, HIGH);
   digitalWrite(RL_PIN_IN2, LOW);
 
-  digitalWrite(FL_PIN_IN1, HIGH);
-  digitalWrite(FL_PIN_IN2, LOW);
+  digitalWrite(FL_PIN_IN1, LOW);
+  digitalWrite(FL_PIN_IN2, HIGH);
 
 
   analogWrite(RR_PIN_PWM, PWM);
@@ -151,8 +109,8 @@ void geri(){
   digitalWrite(RL_PIN_IN1, LOW);
   digitalWrite(RL_PIN_IN2, HIGH);
 
-  digitalWrite(FL_PIN_IN1, LOW);
-  digitalWrite(FL_PIN_IN2, HIGH);
+  digitalWrite(FL_PIN_IN1, HIGH);
+  digitalWrite(FL_PIN_IN2, LOW);
 
 
   analogWrite(RR_PIN_PWM, PWM);

@@ -1,30 +1,27 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-// ======================= PIN AYARLARI =======================
+// --- MOTOR PIN DEFINITIONS ---
+// Rear Left
+const int RL_PIN_PWM = 7;
+const int RL_PIN_IN2 = 8;
+const int RL_PIN_IN1 = 9;
 
-// --- SAĞ GRUP (Fiziksel Sağ) ---
-// FL Etiketi kodda Front Left ama senin araçta SAĞ ÖN motor.
-// NOT: Ters dönme sorununu çözmek için 4 ve 5'i ters tutmaya devam ediyoruz.
-#define FL_AIN1 5   
-#define FL_AIN2 4   
-#define FL_PWM  6   
+// Rear Right
+const int RR_PIN_PWM = 11;
+const int RR_PIN_IN2 = 13;
+const int RR_PIN_IN1 = 12;
 
-// RL Etiketi kodda Rear Left ama senin araçta SAĞ ARKA motor.
-#define RL_AIN1 11  
-#define RL_AIN2 12  
-#define RL_PWM  13  
+// Front Left
+const int FL_PIN_PWM = 15;
+const int FL_PIN_IN2 = 16;
+const int FL_PIN_IN1 = 17;
 
-// --- SOL GRUP (Fiziksel Sol) ---
-// FR Etiketi kodda Front Right ama senin araçta SOL ÖN motor.
-#define FR_AIN1 15  
-#define FR_AIN2 16  
-#define FR_PWM  17  
-
-// RR Etiketi kodda Rear Right ama senin araçta SOL ARKA motor.
-#define RR_AIN1 2   
-#define RR_AIN2 42  
-#define RR_PWM  41  
+// Front Right
+const int FR_PIN_PWM = 4;
+const int FR_PIN_IN2 = 5;
+const int FR_PIN_IN1 = 6;
 
 // ======================= WIFI AYARLARI =======================
 const char* ssid = "LAGARIMEDYA";
@@ -32,31 +29,49 @@ const char* password = "lagari5253";
 WiFiUDP udp;
 unsigned int localPort = 4210;
 char packetBuffer[255];
-
-// ======================= KONTROL DEĞİŞKENLERİ =======================
-// Yeni istediğin eksenler:
-float val_strafe = 0.0;     // Axis 0 (Sağa/Sola kayma)
-float val_rotate = 0.0;     // Axis 1 (Kendi etrafında dönme)
-float val_throttle_fwd = -1.0; // Axis 5 (İleri Gaz - Tetik)
-float val_throttle_back = -1.0;// Axis 4 (Geri Gaz - Tetik)
-
 unsigned long lastPacketTime = 0;
-const int MAX_SPEED = 255; 
+
+// ======================= DEĞİŞKENLER =======================
+// Gelen verileri tutacak eksen değişkenleri (Global)
+float axis0 = 0; // Sol/Sağ Dönüş (Joystick)
+float axis2 = 0; // Sola Kayma (Trigger?)
+float axis4 = -1; // Geri (Trigger/Button)
+float axis5 = -1; // İleri (Trigger/Button)
+
+// Fonksiyon Prototipleri
+void ileri(int speed);
+void geri(int speed);
+void sol(int speed);
+void sag(int speed);
+void sag360(int speed);
+void sol360(int speed);
+void dur();
+void parseCommand(String msg);
+void moveVehicle();
 
 void setup() {
   Serial.begin(115200);
-  
+  Serial.println("Code by 'Dead To AI' Community");
+
+  // WiFi Başlatma
   WiFi.begin(ssid, password);
+  Serial.print("WiFi'ye baglaniliyor");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+
   }
+  Serial.println("\nBaglandi!");
   udp.begin(localPort);
 
   // Pin Modları
-  pinMode(RR_AIN1, OUTPUT); pinMode(RR_AIN2, OUTPUT); pinMode(RR_PWM, OUTPUT);
-  pinMode(RL_AIN1, OUTPUT); pinMode(RL_AIN2, OUTPUT); pinMode(RL_PWM, OUTPUT);
-  pinMode(FR_AIN1, OUTPUT); pinMode(FR_AIN2, OUTPUT); pinMode(FR_PWM, OUTPUT);
-  pinMode(FL_AIN1, OUTPUT); pinMode(FL_AIN2, OUTPUT); pinMode(FL_PWM, OUTPUT);
+  pinMode(RL_PIN_PWM, OUTPUT); pinMode(RL_PIN_IN1, OUTPUT); pinMode(RL_PIN_IN2, OUTPUT);
+  pinMode(RR_PIN_PWM, OUTPUT); pinMode(RR_PIN_IN1, OUTPUT); pinMode(RR_PIN_IN2, OUTPUT);
+  pinMode(FL_PIN_PWM, OUTPUT); pinMode(FL_PIN_IN1, OUTPUT); pinMode(FL_PIN_IN2, OUTPUT);
+  pinMode(FR_PIN_PWM, OUTPUT); pinMode(FR_PIN_IN1, OUTPUT); pinMode(FR_PIN_IN2, OUTPUT);
 }
 
 void loop() {
@@ -67,139 +82,183 @@ void loop() {
     if (len > 0) packetBuffer[len] = 0;
     
     String msg = String(packetBuffer);
-    lastPacketTime = millis();
+    lastPacketTime = millis(); // Son veri zamanını güncelle
     
-    parseCommand(msg);
-    moveVehicle();
+    parseCommand(msg); // Mesajı parçala ve axis değişkenlerini güncelle
+    moveVehicle();     // Motorları yeni değerlere göre hareket ettir
   }
 
   // Güvenlik: 2 saniye sinyal yoksa dur
   if (millis() - lastPacketTime > 2000) {
-    stopMotors();
+    dur();
   }
 }
 
+// ======================= KOMUT PARÇALAMA =======================
+// Bu fonksiyon gelen mesajın "0.5,0.1,1.0..." gibi virgülle ayrıldığını varsayar.
+// Controller uygulamanızın gönderdiği formata göre burayı güncellemek gerekebilir.
 void parseCommand(String msg) {
-  if (msg.startsWith("AXIS")) {
-    int firstSpace = msg.indexOf(' ');
-    int secondSpace = msg.indexOf(' ', firstSpace + 1);
-    
-    int axisId = msg.substring(firstSpace + 1, secondSpace).toInt();
-    float val = msg.substring(secondSpace + 1).toFloat();
-    
-    // === YENİ KONTROL ŞEMASI ===
-    
-    // Axis 0: Yengeç Yürüyüşü (Strafe) - Sağa/Sola kayma
-    if (axisId == 0) {
-      val_strafe = val; // -1 (Sol) ... +1 (Sağ)
-    }
-    // Axis 1: Dönüş (Rotation) - Olduğu yerde dönme
-    else if (axisId == 1) {
-      val_rotate = val; // -1 (Sol Dönüş) ... +1 (Sağ Dönüş)
-    }
-    // Axis 5: İleri Gaz (Throttle Forward)
-    else if (axisId == 5) {
-      val_throttle_fwd = val;
-    }
-    // Axis 4: Geri Gaz (Throttle Backward)
-    else if (axisId == 4) {
-      val_throttle_back = val;
-    }
-  }
+  // Basit CSV parser örneği (Axis0, Axis1, Axis2, Axis3, Axis4, Axis5 varsayımı)
+  // Eğer formatınız farklıysa lütfen belirtin!
+  
+  int firstComma = msg.indexOf(',');
+  int secondComma = msg.indexOf(',', firstComma + 1);
+  int thirdComma = msg.indexOf(',', secondComma + 1);
+  int fourthComma = msg.indexOf(',', thirdComma + 1);
+  int fifthComma = msg.indexOf(',', fourthComma + 1);
+
+  // String'den float'a çeviriyoruz
+  // Not: Gelen verinin sırası önemli. Burayı kendi uygulamanıza göre kontrol edin.
+  // Varsayım: Axis0, Axis1, Axis2, Axis3, Axis4, Axis5
+  if (firstComma > 0) axis0 = msg.substring(0, firstComma).toFloat();
+  if (secondComma > 0) axis2 = msg.substring(secondComma + 1, thirdComma).toFloat(); // Aradaki axis1'i atladım örnek olarak
+  if (fourthComma > 0) axis4 = msg.substring(fourthComma + 1, fifthComma).toFloat(); 
+  if (fifthComma > 0) axis5 = msg.substring(fifthComma + 1).toFloat();
+  
+  // Hata ayıklama için (Serial monitörden değerleri kontrol edebilirsiniz)
+  // Serial.print("A0: "); Serial.print(axis0);
+  // Serial.print(" A2: "); Serial.print(axis2);
+  // Serial.print(" A4: "); Serial.print(axis4);
+  // Serial.print(" A5: "); Serial.println(axis5);
 }
 
-// -1 ile 1 arasındaki joystick verisini -1.0 ile 1.0 arasında temizle
-float normalizeStick(float input) {
-  if (abs(input) < 0.05) return 0.0; // Deadzone
-  return input;
-}
-
-// Tetiği (Trigger) 0.0 ile 1.0 arasına çevir
-float normalizeTrigger(float input) {
-  // Tetikler bırakılınca -1, basılınca +1 verir. Bunu 0 ile 1 yapalım.
-  float norm = (input + 1.0) / 2.0;
-  if (norm < 0.05) return 0.0;
-  if (norm > 1.0) return 1.0;
-  return norm;
-}
-
+// ======================= HAREKET MANTIĞI =======================
 void moveVehicle() {
-  // 1. GİRDİLERİ HAZIRLA
-  
-  // Gaz (İleri - Geri)
-  float fwd = normalizeTrigger(val_throttle_fwd);  // Axis 5
-  float back = normalizeTrigger(val_throttle_back);// Axis 4
-  float throttle = fwd - back; // Pozitifse ileri, negatifse geri
-  
-  // Yönlendirme
-  float strafe = normalizeStick(val_strafe); // Axis 0 (Sağ/Sol Kayma)
-  float turn = normalizeStick(val_rotate);   // Axis 1 (Dönüş)
+  int pwmVal = 0;
+  float deadzone = 0.1; // Joystick hassasiyeti (titremeyi önlemek için)
 
-  // 2. MECANUM TEKERLEK MATEMATİĞİ (Vektörel Karışım)
-  // İstediğin "Sadece Sağa Gitme" mantığı burada çalışır:
-  // Strafe +1 (Sağ) olduğunda:
-  // FL (Sol Ön) = (+1) -> İleri döner
-  // FR (Sağ Ön) = (-1) -> Geri döner
-  // RL (Sol Arka)= (-1) -> Geri döner
-  // RR (Sağ Arka)= (+1) -> İleri döner
-  
-  // Kodda FR/RR Sol taraf, FL/RL Sağ taraf olduğu için haritalama şöyledir:
-  
-  // SOL ÖN (FR Pinleri)
-  float motorFR_Power = throttle + strafe + turn;
-  
-  // SOL ARKA (RR Pinleri)
-  float motorRR_Power = throttle - strafe + turn;
-  
-  // SAĞ ÖN (FL Pinleri - Fiziksel Sağ)
-  float motorFL_Power = throttle - strafe - turn;
-  
-  // SAĞ ARKA (RL Pinleri - Fiziksel Sağ)
-  float motorRL_Power = throttle + strafe - turn;
-
-  // 3. HIZLARI MOTORLARA GÖNDER
-  // Değerleri -255 ile 255 arasına ölçekle ve sınırla
-  setMotor(FR_AIN1, FR_AIN2, FR_PWM, constrainPWM(motorFR_Power));
-  setMotor(RR_AIN1, RR_AIN2, RR_PWM, constrainPWM(motorRR_Power));
-  setMotor(FL_AIN1, FL_AIN2, FL_PWM, constrainPWM(motorFL_Power));
-  setMotor(RL_AIN1, RL_AIN2, RL_PWM, constrainPWM(motorRL_Power));
-}
-
-// PWM Değerini -255 ile 255 arasına sıkıştıran yardımcı fonksiyon
-int constrainPWM(float power) {
-  // Power değişkeni genellikle -1 ile 1 arasında ama toplamda (1+1+1) 3'e çıkabilir.
-  // Bu yüzden önce MAX_SPEED ile çarpıyoruz, sonra limitliyoruz.
-  int pwm = (int)(power * MAX_SPEED);
-  
-  if (pwm > 255) return 255;
-  if (pwm < -255) return -255;
-  return pwm;
-}
-
-void setMotor(int pinIN1, int pinIN2, int pinPWM, int speedVal) {
-  if (speedVal > 0) {
-    // İLERİ
-    digitalWrite(pinIN1, HIGH);
-    digitalWrite(pinIN2, LOW);
-    analogWrite(pinPWM, abs(speedVal));
-  } else if (speedVal < 0) {
-    // GERİ
-    digitalWrite(pinIN1, LOW);
-    digitalWrite(pinIN2, HIGH);
-    analogWrite(pinPWM, abs(speedVal));
-  } else {
-    // DUR
-    digitalWrite(pinIN1, LOW);
-    digitalWrite(pinIN2, LOW);
-    analogWrite(pinPWM, 0);
+  // 1. ÖNCELİK: DÖNÜŞ (Axis 0)
+  if (abs(axis0) > deadzone) {
+    pwmVal = map(abs(axis0) * 100, 0, 100, 60, 255); // 0-1 arası değeri 60-255 PWM'e çevir
+    
+    if (axis0 > 0) {
+      // Axis 0 Pozitif -> SAĞA 360
+      sag360(pwmVal);
+    } else {
+      // Axis 0 Negatif -> SOLA 360
+      sol360(pwmVal);
+    }
+  }
+  // 2. ÖNCELİK: SOLA KAYMA (Axis 2)
+  else if (axis2 > deadzone) {
+    // Axis 2 değerini (0.0 - 1.0) PWM (0 - 255) değerine çeviriyoruz
+    pwmVal = map(axis2 * 100, 0, 100, 60, 255);
+    sol(pwmVal); // Dinamik PWM değeri ile fonksiyonu çağır
+  }
+  // 3. ÖNCELİK: İLERİ (Axis 5)
+  else if (axis5 > deadzone) {
+    pwmVal = map(axis5 * 100, 0, 100, 60, 255);
+    ileri(pwmVal);
+  }
+  // 4. ÖNCELİK: GERİ (Axis 4)
+  else if (axis4 > deadzone) {
+    pwmVal = map(axis4 * 100, 0, 100, 60, 255);
+    geri(pwmVal);
+  }
+  // HİÇBİR GİRDİ YOKSA -> DUR
+  else {
+    dur();
   }
 }
 
-void stopMotors() {
-  analogWrite(FL_PWM, 0); analogWrite(RL_PWM, 0);
-  analogWrite(FR_PWM, 0); analogWrite(RR_PWM, 0);
-  digitalWrite(FL_AIN1, 0); digitalWrite(FL_AIN2, 0);
-  digitalWrite(RL_AIN1, 0); digitalWrite(RL_AIN2, 0);
-  digitalWrite(FR_AIN1, 0); digitalWrite(FR_AIN2, 0);
-  digitalWrite(RR_AIN1, 0); digitalWrite(RR_AIN2, 0);
+
+// ====================== MOTOR FONKSİYONLARI =======================
+
+// İleri: Tüm tekerler ileri
+void ileri(int speed) {
+  digitalWrite(RR_PIN_IN1, HIGH); digitalWrite(RR_PIN_IN2, LOW);
+  digitalWrite(FR_PIN_IN1, HIGH); digitalWrite(FR_PIN_IN2, LOW);
+  digitalWrite(RL_PIN_IN1, HIGH); digitalWrite(RL_PIN_IN2, LOW);
+  digitalWrite(FL_PIN_IN1, HIGH); digitalWrite(FL_PIN_IN2, LOW);
+
+  analogWrite(RR_PIN_PWM, speed);
+  analogWrite(RL_PIN_PWM, speed);
+  analogWrite(FL_PIN_PWM, speed);
+  analogWrite(FR_PIN_PWM, speed);
+}
+
+// Geri: Tüm tekerler geri
+void geri(int speed) {
+  digitalWrite(RR_PIN_IN1, LOW); digitalWrite(RR_PIN_IN2, HIGH);
+  digitalWrite(FR_PIN_IN1, LOW); digitalWrite(FR_PIN_IN2, HIGH);
+  digitalWrite(RL_PIN_IN1, LOW); digitalWrite(RL_PIN_IN2, HIGH);
+  digitalWrite(FL_PIN_IN1, LOW); digitalWrite(FL_PIN_IN2, HIGH);
+
+  analogWrite(RR_PIN_PWM, speed);
+  analogWrite(RL_PIN_PWM, speed);
+  analogWrite(FL_PIN_PWM, speed);
+  analogWrite(FR_PIN_PWM, speed);
+}
+
+// Sağa Kayma (Mecanum/Omni mantığı)
+void sag(int speed) {
+  digitalWrite(RR_PIN_IN1, HIGH); digitalWrite(RR_PIN_IN2, LOW); // Sol Arka İleri mi? (Mecanum mantığına göre değişir)
+  // Standart Mecanum Sağa: FL İleri, RR İleri, FR Geri, RL Geri
+  // Senin kodundaki mantığı korudum:
+  digitalWrite(FR_PIN_IN1, LOW);  digitalWrite(FR_PIN_IN2, HIGH);
+  digitalWrite(RL_PIN_IN1, LOW);  digitalWrite(RL_PIN_IN2, HIGH);
+  digitalWrite(FL_PIN_IN1, HIGH); digitalWrite(FL_PIN_IN2, LOW);
+  
+  // Eksik olan RR mantığını ekledim (Senin kodunda vardı):
+  digitalWrite(RR_PIN_IN1, HIGH); digitalWrite(RR_PIN_IN2, LOW);
+
+  analogWrite(RR_PIN_PWM, speed);
+  analogWrite(RL_PIN_PWM, speed);
+  analogWrite(FL_PIN_PWM, speed);
+  analogWrite(FR_PIN_PWM, speed);
+}
+
+// Sola Kayma (Axis 2 ile kontrol edilecek)
+void sol(int speed) {
+  // Senin kodundaki mantığı koruyarak speed değişkenini ekledim
+  digitalWrite(RR_PIN_IN1, LOW);  digitalWrite(RR_PIN_IN2, HIGH);
+  digitalWrite(FR_PIN_IN1, HIGH); digitalWrite(FR_PIN_IN2, LOW);
+  digitalWrite(RL_PIN_IN1, HIGH); digitalWrite(RL_PIN_IN2, LOW);
+  digitalWrite(FL_PIN_IN1, LOW);  digitalWrite(FL_PIN_IN2, HIGH);
+
+  analogWrite(RR_PIN_PWM, speed);
+  analogWrite(RL_PIN_PWM, speed);
+  analogWrite(FL_PIN_PWM, speed);
+  analogWrite(FR_PIN_PWM, speed);
+}
+
+// Sola 360 Dönüş (Kendi ekseni etrafında)
+// Sol taraf geri, Sağ taraf ileri
+void sol360(int speed) {
+  digitalWrite(RR_PIN_IN1, HIGH); digitalWrite(RR_PIN_IN2, LOW);
+  digitalWrite(FR_PIN_IN1, HIGH); digitalWrite(FR_PIN_IN2, LOW);
+  digitalWrite(RL_PIN_IN1, LOW);  digitalWrite(RL_PIN_IN2, HIGH);
+  digitalWrite(FL_PIN_IN1, LOW);  digitalWrite(FL_PIN_IN2, HIGH);
+
+  analogWrite(RR_PIN_PWM, speed);
+  analogWrite(RL_PIN_PWM, speed);
+  analogWrite(FL_PIN_PWM, speed);
+  analogWrite(FR_PIN_PWM, speed);
+}
+
+// Sağa 360 Dönüş (Kendi ekseni etrafında)
+// Sol taraf ileri, Sağ taraf geri
+void sag360(int speed) {
+  digitalWrite(RR_PIN_IN1, LOW);  digitalWrite(RR_PIN_IN2, HIGH);
+  digitalWrite(FR_PIN_IN1, LOW);  digitalWrite(FR_PIN_IN2, HIGH);
+  digitalWrite(RL_PIN_IN1, HIGH); digitalWrite(RL_PIN_IN2, LOW);
+  digitalWrite(FL_PIN_IN1, HIGH); digitalWrite(FL_PIN_IN2, LOW);
+
+  analogWrite(RR_PIN_PWM, speed);
+  analogWrite(RL_PIN_PWM, speed);
+  analogWrite(FL_PIN_PWM, speed);
+  analogWrite(FR_PIN_PWM, speed);
+}
+
+// Dur
+void dur() {
+  digitalWrite(RR_PIN_IN1, LOW); digitalWrite(RR_PIN_IN2, LOW);
+  digitalWrite(RL_PIN_IN1, LOW); digitalWrite(RL_PIN_IN2, LOW);
+  digitalWrite(FL_PIN_IN1, LOW); digitalWrite(FL_PIN_IN2, LOW);
+  digitalWrite(FR_PIN_IN1, LOW); digitalWrite(FR_PIN_IN2, LOW);
+
+  analogWrite(RR_PIN_PWM, 0);
+  analogWrite(RL_PIN_PWM, 0);
+  analogWrite(FL_PIN_PWM, 0);
+  analogWrite(FR_PIN_PWM, 0);
 }
