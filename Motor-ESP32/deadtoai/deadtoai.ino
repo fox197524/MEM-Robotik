@@ -70,12 +70,41 @@ void setup() {
 
 void loop() {
  
-if(axis5 >= -0.5){
-  ileri();
+int packetSize = udp.parsePacket();
+  if (packetSize) {
+    int len = udp.read(packetBuffer, 255);
+    if (len > 0) packetBuffer[len] = 0;
+    
+    String msg = String(packetBuffer);
+    // Örnek format: "AXIS 5 0.750"
+    if (msg.startsWith("AXIS 0")) axis0 = msg.substring(7).toFloat();
+    if (msg.startsWith("AXIS 2")) axis2 = msg.substring(7).toFloat();
+    if (msg.startsWith("AXIS 4")) axis4 = msg.substring(7).toFloat();
+    if (msg.startsWith("AXIS 5")) axis5 = msg.substring(7).toFloat();
+  }
+
+
+// Karar Mekanizması
+  if (axis5 > -0.9) { // Tetik basılıysa (PS5 tetikleri boştayken -1'dir)
+    int pwmVal = map(axis5 * 100, -100, 100, 0, 255);
+    ileri(pwmVal);
+  } else if (axis4 > -0.9) {
+    int pwmVal = map(axis4 * 100, -100, 100, 0, 255);
+    geri(pwmVal);
+  } else if (abs(axis0) > 0.1) { // Sağ-Sol Dönüş (%10 deadzone)
+    int pwmVal = map(abs(axis0) * 100, 0, 100, 0, 255);
+    if (axis0 > 0) sag360(pwmVal); else sol360(pwmVal);
+  } else if (axis2 > 0.1) { // Sola kayma axis 2 demiştin
+    int pwmVal = map(axis2 * 100, 0, 100, 0, 255);
+    sol(pwmVal);
+  } else {
+    dur();
+  }
 }
 
 
-}
+
+
 // ============ Controller Trigger Convert Fonksiyonu ============
 void trigger() {
 
@@ -92,7 +121,7 @@ void cic() {
 }
 
 // ====================== İleri Fonksiyonu =======================
-void ileri() {
+void ileri(int hiz) {
 
   digitalWrite(RR_PIN_IN1, HIGH);
   digitalWrite(RR_PIN_IN2, LOW);
@@ -107,14 +136,14 @@ void ileri() {
   digitalWrite(FL_PIN_IN2, HIGH);
 
 
-  analogWrite(RR_PIN_PWM, PWM);
-  analogWrite(RL_PIN_PWM, PWM);
-  analogWrite(FL_PIN_PWM, PWM);
-  analogWrite(FR_PIN_PWM, PWM);
+  analogWrite(RR_PIN_PWM, hiz);
+  analogWrite(RL_PIN_PWM, hiz);
+  analogWrite(FL_PIN_PWM, hiz);
+  analogWrite(FR_PIN_PWM, hiz);
 
 }
 //==============Geri Fonksiyonu=============
-void geri(){
+void geri(int hiz){
 
   digitalWrite(RR_PIN_IN1, LOW);
   digitalWrite(RR_PIN_IN2, HIGH);
@@ -129,14 +158,14 @@ void geri(){
   digitalWrite(FL_PIN_IN2, LOW);
 
 
-  analogWrite(RR_PIN_PWM, PWM);
-  analogWrite(RL_PIN_PWM, PWM);
-  analogWrite(FL_PIN_PWM, PWM);
-  analogWrite(FR_PIN_PWM, PWM);
+  analogWrite(RR_PIN_PWM, hiz);
+  analogWrite(RL_PIN_PWM, hiz);
+  analogWrite(FL_PIN_PWM, hiz);
+  analogWrite(FR_PIN_PWM, hiz);
 
 }
 //==============Sağa Kayma Fonksiyonu=============
-void sag(){
+void sag(int hiz){
   
   digitalWrite(RR_PIN_IN1, HIGH);
   digitalWrite(RR_PIN_IN2, LOW);
@@ -151,13 +180,13 @@ void sag(){
   digitalWrite(FL_PIN_IN2, LOW);
 
 
-  analogWrite(RR_PIN_PWM, PWM);
-  analogWrite(RL_PIN_PWM, PWM);
-  analogWrite(FL_PIN_PWM, PWM);
-  analogWrite(FR_PIN_PWM, PWM);
+  analogWrite(RR_PIN_PWM, hiz);
+  analogWrite(RL_PIN_PWM, hiz);
+  analogWrite(FL_PIN_PWM, hiz);
+  analogWrite(FR_PIN_PWM, hiz);
 }
 //==============Sola Kayma Fonksiyonu=============
-void sol(){
+void sol(int hiz){
   
   digitalWrite(RR_PIN_IN1, LOW);
   digitalWrite(RR_PIN_IN2, HIGH);
@@ -172,10 +201,10 @@ void sol(){
   digitalWrite(FL_PIN_IN2, HIGH);
 
 
-  analogWrite(RR_PIN_PWM, PWM);
-  analogWrite(RL_PIN_PWM, PWM);
-  analogWrite(FL_PIN_PWM, PWM);
-  analogWrite(FR_PIN_PWM, PWM);
+  analogWrite(RR_PIN_PWM, hiz);
+  analogWrite(RL_PIN_PWM, hiz);
+  analogWrite(FL_PIN_PWM, hiz);
+  analogWrite(FR_PIN_PWM, hiz);
 }
 //==============Dur Fonksiyonu=============
 void dur(){
@@ -195,12 +224,12 @@ void dur(){
 
   analogWrite(RR_PIN_PWM, PWMS);
   analogWrite(RL_PIN_PWM, PWMS);
-  analogWrite(FL_PIN_PWM, PWMS);
+  analogWrite(FL_PIN_PWM, PWM);
   analogWrite(FR_PIN_PWM, PWMS);
 
 }
 //==============sola 360 dönme fonksiyonu=============
-void sol360(){
+void sol360(int hiz){
 
   digitalWrite(RR_PIN_IN1, HIGH);
   digitalWrite(RR_PIN_IN2, LOW);
@@ -215,13 +244,13 @@ void sol360(){
   digitalWrite(FL_PIN_IN2, HIGH);
 
 
-  analogWrite(RR_PIN_PWM, PWM);
-  analogWrite(RL_PIN_PWM, PWM);
-  analogWrite(FL_PIN_PWM, PWM);
-  analogWrite(FR_PIN_PWM, PWM);
+  analogWrite(RR_PIN_PWM, hiz);
+  analogWrite(RL_PIN_PWM, hiz);
+  analogWrite(FL_PIN_PWM, hiz);
+  analogWrite(FR_PIN_PWM, hiz);
 }
 //==============sağa 360 dönme fonksiyonu=============
-void sag360(){
+void sag360(int hiz){
 
   digitalWrite(RR_PIN_IN1, LOW);
   digitalWrite(RR_PIN_IN2, HIGH);
@@ -236,8 +265,8 @@ void sag360(){
   digitalWrite(FL_PIN_IN2, LOW);
 
 
-  analogWrite(RR_PIN_PWM, PWM);
-  analogWrite(RL_PIN_PWM, PWM);
-  analogWrite(FL_PIN_PWM, PWM);
-  analogWrite(FR_PIN_PWM, PWM);
+  analogWrite(RR_PIN_PWM, hiz);
+  analogWrite(RL_PIN_PWM, hiz);
+  analogWrite(FL_PIN_PWM, hiz);
+  analogWrite(FR_PIN_PWM, hiz);
 }
