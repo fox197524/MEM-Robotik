@@ -1,23 +1,23 @@
 #include <Arduino.h>
 // --- MOTOR 4 PIN DEFINITIONS 
-const int RL_PIN_PWM = 7;   // Speed Control (PWM) yeşil
-const int RL_PIN_IN2 = 8;   // Direction 1.        turuncu
-const int RL_PIN_IN1 = 9;   // Direction 2.        sarı
+const int RL_PIN_PWM = 7;   //karışma doğru 
+const int RL_PIN_IN1 = 8;   
+const int RL_PIN_IN2 = 9;   
 
-const int RR_PIN_PWM = 11;
-const int RR_PIN_IN2 = 12;
+const int RR_PIN_PWM = 11;//karışma
 const int RR_PIN_IN1 = 13;
+const int RR_PIN_IN2 = 12;
 
-const int FL_PIN_PWM = 15;
-const int FL_PIN_IN2 = 16;
-const int FL_PIN_IN1 = 17;
+const int FL_PIN_PWM = 15;//karışma
+const int FL_PIN_IN1 = 16;
+const int FL_PIN_IN2 = 17;
 
-const int FR_PIN_PWM = 4;
-const int FR_PIN_IN2 = 5;
-const int FR_PIN_IN1 = 6;
+const int FR_PIN_PWM = 4;//karışma doğru
+const int FR_PIN_IN1 = 5;
+const int FR_PIN_IN2 = 6;
 
 // Configuration
-const int PWM = 200; // Full speed
+const int PWM = 255; // Full speed
 const int PWMS = 0; // 
 
 
@@ -40,37 +40,81 @@ void setup() {
   pinMode(FR_PIN_PWM, OUTPUT);
   pinMode(FR_PIN_IN1, OUTPUT);
   pinMode(FR_PIN_IN2, OUTPUT);
+
+
+dur ();
+delay(500);
+ileri();
+delay(1000);
+dur ();
+delay(500);
+geri();
+delay(1000);
+dur ();
+delay(500);
+sag();
+delay(1000);
+dur ();
+delay(500);
+sol();
+delay(1000);
+dur ();
+delay(500);
+sol360();
+delay(1000);
+dur ();
+delay(500);
+sag360();
+delay(1000);
+dur();
 }
 
 void loop() {
  
 
-dur ();
-delay(1000);
-ileri ();
-delay(1000);
-dur();
-geri ();
-delay(1000);
-dur();
-sag360 ();
-delay(1000);
-dur();
+
+
+
+
 
 
 }
-// ============ Controller Trigger Convert Fonksiyonu ============
-void trigger() {
+
+void sagarkaileri() {
+
+  digitalWrite(RR_PIN_IN1, HIGH);
+  digitalWrite(RR_PIN_IN2, LOW);
+
+  analogWrite(RR_PIN_PWM, PWM);
+
+}
+void solarkaileri() {
+
+  digitalWrite(RL_PIN_IN1, HIGH);
+  digitalWrite(RL_PIN_IN2, LOW);
+
+
+  analogWrite(RL_PIN_PWM, PWM);
 
 }
 
-// ============ Controller Joystick Convert Fonksiyonu ===========
-void joystick() {
+void sagonileri() {
+
+
+  digitalWrite(FR_PIN_IN1, HIGH);
+  digitalWrite(FR_PIN_IN2, LOW);
+
+  analogWrite(FR_PIN_PWM, PWM);
 
 }
 
-// ============= Controller Input Convert Fonksiyonu =============
-void cic() {
+void solonileri() {
+
+  digitalWrite(FL_PIN_IN1, HIGH);
+  digitalWrite(FL_PIN_IN2, LOW);
+
+
+  analogWrite(FL_PIN_PWM, PWM);
 
 }
 
@@ -86,8 +130,8 @@ void ileri() {
   digitalWrite(RL_PIN_IN1, HIGH);
   digitalWrite(RL_PIN_IN2, LOW);
 
-  digitalWrite(FL_PIN_IN1, LOW);
-  digitalWrite(FL_PIN_IN2, HIGH);
+  digitalWrite(FL_PIN_IN1, HIGH);
+  digitalWrite(FL_PIN_IN2, LOW);
 
 
   analogWrite(RR_PIN_PWM, PWM);
@@ -108,8 +152,8 @@ void geri(){
   digitalWrite(RL_PIN_IN1, LOW);
   digitalWrite(RL_PIN_IN2, HIGH);
 
-  digitalWrite(FL_PIN_IN1, HIGH);
-  digitalWrite(FL_PIN_IN2, LOW);
+  digitalWrite(FL_PIN_IN1, LOW);
+  digitalWrite(FL_PIN_IN2, HIGH);
 
 
   analogWrite(RR_PIN_PWM, PWM);
@@ -209,8 +253,8 @@ void sag360(){
   digitalWrite(RR_PIN_IN1, LOW);
   digitalWrite(RR_PIN_IN2, HIGH);
 
-  digitalWrite(FR_PIN_IN1, HIGH);
-  digitalWrite(FR_PIN_IN2, LOW);
+  digitalWrite(FR_PIN_IN1, LOW);
+  digitalWrite(FR_PIN_IN2, HIGH);
 
   digitalWrite(RL_PIN_IN1, HIGH);
   digitalWrite(RL_PIN_IN2, LOW);
