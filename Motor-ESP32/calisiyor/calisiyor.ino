@@ -30,7 +30,7 @@ float last_a0=999, last_a2=999, last_a4=999, last_a5=999;  // DEĞİŞİM TAKİP
 
 void setup() {
   Serial.begin(115200);
-  
+  Serial.print("calis");
   int pins[] = {RL_PIN_PWM, RL_PIN_IN1, RL_PIN_IN2, RR_PIN_PWM, RR_IN1, RR_IN2, FL_PIN_PWM, FL_IN1, FL_IN2, FR_PIN_PWM, FR_IN1, FR_IN2};
   for(int p : pins) pinMode(p, OUTPUT);
 
