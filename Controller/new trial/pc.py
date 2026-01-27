@@ -22,7 +22,7 @@ print(f"Connected to controller: {joystick.get_name()}")
 
 # --- UI Settings ---
 screen = pygame.display.set_mode((800, 700)) 
-pygame.display.set_caption("PS5 Controller - Continuous Send Mode")
+pygame.display.set_caption("Controller Test")
 font = pygame.font.SysFont("Consolas", 16)
 clock = pygame.time.Clock()
 

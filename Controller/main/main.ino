@@ -1,11 +1,11 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-const char* ssid = "Ben";
-const char* password = "Gisherman2010";
-
+const char* ssid = "LAGARIMEDYA";
+const char* password = "lagari5253";
 WiFiUDP udp;
 unsigned int localPort = 4210;
+char packetBuffer[255];  
 
 void setup() {
   Serial.begin(115200);
