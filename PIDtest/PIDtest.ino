@@ -20,8 +20,9 @@ MPU6050 mpu;
 
 volatile long encoder_lu = 0;
 volatile long encoder_ld = 0;
-void IRAM_ATTR encLU_ISR() { encoder_lu++; }
-void IRAM_ATTR encLD_ISR() { encoder_ld++; }
+void IRAM_ATTR encLU_ISR() { encoder_lu = encoder_lu + 1; }
+void IRAM_ATTR encLD_ISR() { encoder_ld = encoder_ld + 1; }
+
 
 void setup() {
   Serial.begin(115200);
