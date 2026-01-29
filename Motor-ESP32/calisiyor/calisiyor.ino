@@ -34,7 +34,7 @@ void setup() {
   int pins[] = {RL_PIN_PWM, RL_PIN_IN1, RL_PIN_IN2, RR_PIN_PWM, RR_IN1, RR_IN2, FL_PIN_PWM, FL_IN1, FL_IN2, FR_PIN_PWM, FR_IN1, FR_IN2};
   for(int p : pins) pinMode(p, OUTPUT);
 
-  WiFi.begin("Fox-2", "Kyra2bin9");
+  WiFi.begin("LAGARIMEDYA", "lagari5253");
   Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
