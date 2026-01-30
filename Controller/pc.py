@@ -90,9 +90,11 @@ while running:
         # Eğer senin PC'de bunlar farklı ID ise burayı güncellemelisin.
         
         axis_L_Fwd = joystick.get_axis(5)   # Sol İleri
-        axis_L_Back = joystick.get_axis(0) # Sol Geri (Eski buton 10 variable)
-        axis_R_Fwd = joystick.get_axis(4)   # Sağ İleri
-        axis_R_Back = joystick.get_axis(2) # Sağ Geri (Eski buton 9 variable)
+        axis_L_Back = joystick.get_axis(0) # 
+        axis_R_Fwd = joystick.get_axis(4)   # 
+        axis_R_Back = joystick.get_axis(2) # 
+        axis_R_Back = joystick.get_axis(12)
+        axis_R_Back = joystick.get_axis(13)
         
         # Paketleri Hazırla
         msgs = [
@@ -100,6 +102,8 @@ while running:
             f"AXIS 0 {axis_L_Back:.3f}",
             f"AXIS 4 {axis_R_Fwd:.3f}",
             f"AXIS 2 {axis_R_Back:.3f}"
+            f"AXIS 12 {axis_R_Back:.3f}"
+            f"AXIS 13 {axis_R_Back:.3f}"
         ]
         
         # Hepsini Arduino'ya fırlat
