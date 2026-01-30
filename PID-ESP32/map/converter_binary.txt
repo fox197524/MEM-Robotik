@@ -2,8 +2,8 @@ import sys
 from PIL import Image
 
 # --- Configuration ---
-IMAGE_FILE = "Kalas.png"      # The name of your input image file
-OUTPUT_FILE = "Map.BIN"     # The name of the output binary file (use 8.3 format for SD cards)
+IMAGE_FILE = "Ahmete_girecek.png"      # The name of your input image file
+OUTPUT_FILE = "MAP.BIN"     # The name of the output binary file (use 8.3 format for SD cards)
 # ---------------------
 
 def rgb_to_rgb565_big_endian(r, g, b):
