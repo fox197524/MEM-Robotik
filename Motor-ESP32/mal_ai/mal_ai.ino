@@ -30,8 +30,8 @@ const int EL_PWM = 18;
 const int EL_IN1 = 19;
 const int EL_IN2 = 21;
 
-const int E_LID = 48; // MG90S Signal Pin
-const int RP = 35; 
+//const int E_LID = 48; // MG90S Signal Pin
+//const int RP = 35; 
 
 // --- UDP COMMUNICATION ---
 
@@ -44,7 +44,7 @@ String lastMsg = "";
 
 void setup() {
   Serial.begin(115200);
-  
+  delay(1000);
   int pins[] = {
     RL_PWM, RL_IN1, RL_IN2, 
     RR_PWM, RR_IN1, RR_IN2, 
@@ -52,7 +52,6 @@ void setup() {
     FR_PWM, FR_IN1, FR_IN2, 
     ER_IN1, ER_IN2, ER_PWM, 
     EL_IN1, EL_IN2, EL_PWM, 
-    E_LID, RP
   };
 
   for(int p : pins) {
@@ -60,9 +59,9 @@ void setup() {
   }
 
   // Set MG90S Frequency
-  analogWriteFrequency(E_LID, 50); 
+//  analogWriteFrequency(E_LID, 50); 
 
-  WiFi.begin("LAGARIMEDYA", "lagari5253");
+  WiFi.begin("Fox-2", "Kyra2bin9");
   Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
