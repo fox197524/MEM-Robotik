@@ -19,9 +19,6 @@ pinMode(ER_IN2, OUTPUT);
 pinMode(EL_PWM, OUTPUT);
 pinMode(EL_IN1, OUTPUT);
 pinMode(EL_IN2, OUTPUT);
-
-
-
 }
 
 void loop() {
