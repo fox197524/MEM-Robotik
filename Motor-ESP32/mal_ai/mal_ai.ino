@@ -63,10 +63,14 @@ void setup() {
   analogWriteFrequency(E_LID, 50); 
 
   WiFi.begin("LAGARIMEDYA", "lagari5253");
-  while (WiFi.status() != WL_CONNECTED) { 
-    delay(500); 
-    Serial.print("."); 
+  Serial.print("Connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
   }
+  
+  Serial.println("\nWiFi Connected!");
+  Serial.print("ESP32 IP: "); Serial.println(WiFi.localIP());
 
   udp.begin(localPort);
 }
