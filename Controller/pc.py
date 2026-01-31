@@ -5,7 +5,7 @@ import socket
 # Allow joystick events in background
 os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
 
-ESP32_IP = "10.224.10.188"   # ESP32 IP adresini buraya yaz 
+ESP32_IP = ""   # ESP32 IP adresini buraya yaz 
 ESP32_PORT = 4210
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -89,21 +89,23 @@ while running:
         # (PS5 kolunda buton 9-10 yerine Axis 10-11 olarak göründüğü için Axis okuyoruz)
         # Eğer senin PC'de bunlar farklı ID ise burayı güncellemelisin.
         
-        axis_L_Fwd = joystick.get_axis(5)   # Sol İleri
-        axis_L_Back = joystick.get_axis(0) # 
-        axis_R_Fwd = joystick.get_axis(4)   # 
-        axis_R_Back = joystick.get_axis(2) # 
-        axis_R_Back = joystick.get_axis(12)
-        axis_R_Back = joystick.get_axis(13)
+        axis_Forward = joystick.get_axis(5)   # Sol İleri
+        axis_Back = joystick.get_axis(0) # 
+        axis_turn_360 = joystick.get_axis(4)   # 
+        axis_slide_L_R = joystick.get_axis(2) # 
+        axis_elevator_up = joystick.get_button(11)  # Buton 10
+        axis_elevator_down = joystick.get_button(12)  # Buton 11
+        buton_E_LID = joystick.get_button(0)  # Buton 0
         
         # Paketleri Hazırla
         msgs = [
-            f"AXIS 5 {axis_L_Fwd:.3f}",
-            f"AXIS 0 {axis_L_Back:.3f}",
-            f"AXIS 4 {axis_R_Fwd:.3f}",
-            f"AXIS 2 {axis_R_Back:.3f}"
-            f"AXIS 12 {axis_R_Back:.3f}"
-            f"AXIS 13 {axis_R_Back:.3f}"
+            f"AXIS 5 {axis_Forward:.3f}",
+            f"AXIS 0 {axis_Back:.3f}",
+            f"AXIS 4 {axis_turn_360:.3f}",
+            f"AXIS 2 {axis_slide_L_R:.3f}",
+            f"BUTTON 11 {axis_elevator_up:.3f}",
+            f"BUTTON 12 {axis_elevator_down:.3f}",
+            f"BUTTON 0 {buton_E_LID}"
         ]
         
         # Hepsini Arduino'ya fırlat
