@@ -24,19 +24,17 @@ const int FR_IN1 = 5;
 const int FR_IN2 = 6;
 
 // Elevator Right Motor Pins
-const int ER_PWM = 35;
-const int ER_IN1 = 36;
-const int ER_IN2 = 37;
+const int ER_PWM = 1;
+const int ER_IN1 = 2;
+const int ER_IN2 = 42;
 
 // Elevator Left Motor Pins
 const int EL_PWM = 18;
 const int EL_IN1 = 19;
 const int EL_IN2 = 21;
 
-const int E_LID = 48;
+const int E_LID = 41;
 
-// Relay Pin
-const int RP = 35;
 
 // --- UDP COMMUNICATION SETTINGS ---
 WiFiUDP udp;
@@ -55,7 +53,7 @@ void setup() {
   Serial.print("calis");
   
   // Initialize motor pins as OUTPUT
-  int pins[] = {RL_PWM, RL_IN1, RL_IN2, RR__PWM, RR_IN1, RR_IN2, FL_PWM, FL_IN1, FL_IN2, FR_PWM, FR_IN1, FR_IN2, ER_IN1, ER_IN2, ER_PWM, EL_IN1, EL_IN2, EL_PWM, E_LID, RP};
+  int pins[] = {RL_PWM, RL_IN1, RL_IN2, RR__PWM, RR_IN1, RR_IN2, FL_PWM, FL_IN1, FL_IN2, FR_PWM, FR_IN1, FR_IN2, ER_IN1, ER_IN2, ER_PWM, EL_IN1, EL_IN2, EL_PWM, E_LID };
   for(int p : pins) pinMode(p, OUTPUT);
 
   // Connect to WiFi network
@@ -224,6 +222,12 @@ void loop() {
         Serial.printf("MIX: a5=%.3f PWM=%d\n", a5, mix_pwm);
         ileri_mix(mix_pwm);
       }
+    }
+    //asansör 
+    else if (a12 > -0.9 && a13 <= -0.9){
+      int
+      
+
     }
     // STOP IF NO INPUT
     else {  
