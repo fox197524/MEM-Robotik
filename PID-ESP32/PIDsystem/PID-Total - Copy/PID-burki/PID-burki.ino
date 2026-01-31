@@ -1,304 +1,317 @@
+/*
+ * ROBOT PID NAVIGATION SYSTEM v2.0 (MM + ENCODER TURNS)
+ * Autonomous Mission: BASLANGIC → KAYNAK → SARNICSOL → KAYNAK
+ * Commands: "START" (auto), "GO X" (manual), "STOP" via UDP
+ * Controls: ILERI/GERI/SOL/SAG/DONUS + encoder turns
+ */
+
 #include <Arduino.h>
-#include <Wire.h>
 #include <MPU6050.h>
+#include <Wire.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
 
-/////////////////////////////////////////////////////
-// ARENA AYARLARI (MILIMETRE)
-/////////////////////////////////////////////////////
-#define ARENA_SIZE_MM 3600.0f   // Arena: 3.6m x 3.6m
+// ======================= CONFIGURATION =======================
+#define DIST_PER_TICK 0.0006545f  // 0.1m wheel, 48 ticks/rev = 0.6545mm/tick
+#define LIFT_MM_PER_TICK 0.1f     // Elevator: adjust this!
+#define STOP_DIST 30.0f           // 30mm safety
+#define NUM_PARTICLES 50
 
-/////////////////////////////////////////////////////
-// TEKERLEK & ENCODER AYARLARI
-/////////////////////////////////////////////////////
-#define WHEEL_DIAMETER_MM 100.0f
-#define ENC_TICKS_PER_REV 48.0f
-#define DIST_PER_TICK_MM (WHEEL_DIAMETER_MM * PI / ENC_TICKS_PER_REV)
-
-/////////////////////////////////////////////////////
-// LOOP ZAMANLAMASI
-/////////////////////////////////////////////////////
-#define LOOP_DT 0.02f // 50 Hz kontrol döngüsü
-
-/////////////////////////////////////////////////////
-// SONAR PINLERI
-/////////////////////////////////////////////////////
-#define HC_TRIG_FRONT 3
-#define HC_ECHO_FRONT 46
-#define HC_TRIG_RIGHT 6
-#define HC_ECHO_RIGHT 47
-#define HC_TRIG_LEFT 7
-#define HC_ECHO_LEFT 21
-#define HC_TRIG_BACK 15
-#define HC_ECHO_BACK 14
-
-/////////////////////////////////////////////////////
-// ENCODER PINLERI
-/////////////////////////////////////////////////////
-#define ENC_FL_CLK 4
-#define ENC_FR_CLK 12
-
-/////////////////////////////////////////////////////
-// I2C & UART
-/////////////////////////////////////////////////////
-#define I2C_SDA 8
-#define I2C_SCL 9
-#define UART1_TX 17
-#define UART1_RX 18
-
-/////////////////////////////////////////////////////
-// ROBOT POZISYON YAPISI
-/////////////////////////////////////////////////////
-struct Pose {
-  float x;     // mm cinsinden X konumu
-  float y;     // mm cinsinden Y konumu
-  float theta; // Radyan cinsinden yön açısı
-};
-
-/////////////////////////////////////////////////////
-// HEDEF NOKTA TABLOSU (ARENA HARITASI)
-/////////////////////////////////////////////////////
+// Locations (1px = 1mm)
 struct Location {
-  const char* id;
-  int x;
-  int y;
+  const char* name;
+  float x, y;  // mm
 };
 
 Location locations[] = {
-  {"MERKEZ", 1800, 1800},
+  {"KAYNAK", 2, 700},
   {"SARNICSOL", 1382, 1105},
   {"SARNICSAG", 1879, 1105},
   {"BASLANGIC", 200, 200}
 };
+#define NUM_LOCATIONS 4
 
-/////////////////////////////////////////////////////
-// DONANIM NESNELERI
-/////////////////////////////////////////////////////
+// Autonomous mission sequence
+int mission[] = {3, 0, 1, 0};  // BASLANGIC→KAYNAK→SARNICSOL→KAYNAK
+int missionStep = 0;
+bool autoMission = false;
+
+#define HC_TRIG_F 3  #define HC_ECHO_F 46
+#define HC_TRIG_R 6  #define HC_ECHO_R 47
+#define HC_TRIG_L 7  #define HC_ECHO_L 21
+#define HC_TRIG_B 15 #define HC_ECHO_B 14
+
+#define ENC_FL_CLK 4  #define ENC_FL_DT 5
+#define ENC_FR_CLK 12 #define ENC_FR_DT 13
+#define ENC_BL_CLK 37 #define ENC_BL_DT 38
+#define ENC_BR_CLK 41 #define ENC_BR_DT 42
+#define ENC_LU_CLK 10 #define ENC_LU_DT 11
+#define ENC_LD_CLK 40 #define ENC_LD_DT 39
+
+#define I2C_SDA 8 #define I2C_SCL 9
+#define UART1_TX 17 #define UART1_RX 18
+
+// ======================= GLOBALS =======================
 MPU6050 mpu;
-HardwareSerial uart1(1);
+WiFiUDP udp;
+HardwareSerial pidUart(1);
 
-/////////////////////////////////////////////////////
-// GLOBAL DURUM DEGISKENLERI
-/////////////////////////////////////////////////////
-volatile long enc_fl_cnt = 0;
-volatile long enc_fr_cnt = 0;
-volatile float gyro_z_offset = 0;
+struct Pose { float x,y,theta,height; };  // All mm
+volatile Pose estimatedPose = {200,200,0,0};
 
-Pose estimatedPose = {0,0,0};
+volatile long enc_fl=0, enc_fr=0, enc_bl=0, enc_br=0;
+volatile long enc_lu=0, enc_ld=0;
+volatile float gyro_offset = 0;
 
-/////////////////////////////////////////////////////
-// ENCODER INTERRUPT SERVIS FONKSIYONLARI
-/////////////////////////////////////////////////////
-void IRAM_ATTR isr_enc_fl() { enc_fl_cnt++; }
-void IRAM_ATTR isr_enc_fr() { enc_fr_cnt++; }
+int targetIndex = -1;
+bool navigating = false;
+float sonar_f,r,l,b;
 
-/////////////////////////////////////////////////////
-// SONAR OKUMA FONKSIYONU (mm DONER)
-/////////////////////////////////////////////////////
-float readSonarMM(int trig, int echo) {
-  digitalWrite(trig, LOW); delayMicroseconds(2);
-  digitalWrite(trig, HIGH); delayMicroseconds(10);
-  digitalWrite(trig, LOW);
+// PID state
+float pid_dist_i=0, pid_dist_prev=0;
+float pid_theta_i=0, pid_theta_prev=0;
+unsigned long pid_time=0;
 
-  long dur = pulseIn(echo, HIGH, 25000);
-  if (dur == 0) return 4000; // Okuma yoksa max mesafe varsay
+SemaphoreHandle_t mutexPose;
+const char* ssid = "Ben";
+const char* password = "Gisherman2010";
+unsigned int localPort = 4210;
 
-  float cm = (dur * 0.034 / 2.0);
-  return cm * 10.0f; // mm'ye çevir
-}
+// ======================= ISRs =======================
+void IRAM_ATTR enc_fl_isr() { enc_fl++; }
+void IRAM_ATTR enc_fr_isr() { enc_fr++; }
+void IRAM_ATTR enc_bl_isr() { enc_bl++; }
+void IRAM_ATTR enc_br_isr() { enc_br++; }
+void IRAM_ATTR enc_lu_isr() { enc_lu++; }
+void IRAM_ATTR enc_ld_isr() { enc_ld++; }
 
-/////////////////////////////////////////////////////
-// ACILARI -PI ILE +PI ARASINDA TUT
-/////////////////////////////////////////////////////
-float normAngle(float a) {
-  while (a > PI) a -= 2 * PI;
-  while (a < -PI) a += 2 * PI;
-  return a;
-}
-
-/////////////////////////////////////////////////////
-// BASLANGICTA OTOMATIK KONUM BULMA
-// Robot yavas doner ve duvarlari kullanarak
-// X, Y ve YON acisini otomatik hesaplar
-/////////////////////////////////////////////////////
-void autoLocalize() {
-  Serial.println(">> Baslangic konumu bulunuyor...");
-
-  float bestLeft = 9999;
-  float bestBack = 9999;
-  float bestAngle = 0;
-
-  // Robot yavasca donerek duvar mesafelerini tarar
-  for (int angle = 0; angle < 360; angle += 3) {
-
-    // Sadece sinyal bekleniyor — motor sürme diğer ESP32’de olacak
-    uart1.println("CMD V=0 W=0.8"); // yavas donus
-    delay(20);
-
-    float left = readSonarMM(HC_TRIG_LEFT, HC_ECHO_LEFT);
-    float back = readSonarMM(HC_TRIG_BACK, HC_ECHO_BACK);
-
-    // En stabil ve en yakin duvar kombinasyonu secilir
-    if (left < bestLeft && back < bestBack) {
-      bestLeft = left;
-      bestBack = back;
-      bestAngle = angle * DEG_TO_RAD;
-    }
-  }
-
-  // Donusu durdur
-  uart1.println("CMD V=0 W=0");
-
-  // Baslangic pozisyonunu sabitle
-  estimatedPose.x = bestLeft;
-  estimatedPose.y = bestBack;
-  estimatedPose.theta = bestAngle;
-
-  Serial.println(">> Baslangic pozu belirlendi!");
-}
-
-/////////////////////////////////////////////////////
 void setup() {
   Serial.begin(115200);
+  mutexPose = xSemaphoreCreateMutex();
+  
+  // Hardware init
   Wire.begin(I2C_SDA, I2C_SCL);
   mpu.initialize();
-
-  // GYRO OFFSET KALIBRASYONU
-  long sum = 0;
-  for(int i=0; i<200; i++){
-    sum += mpu.getRotationZ();
-    delay(3);
-  }
-  gyro_z_offset = sum / 200.0;
-
-  // SONAR PIN AYARLARI
-  pinMode(HC_TRIG_FRONT, OUTPUT);
-  pinMode(HC_ECHO_FRONT, INPUT);
-  pinMode(HC_TRIG_RIGHT, OUTPUT);
-  pinMode(HC_ECHO_RIGHT, INPUT);
-  pinMode(HC_TRIG_LEFT, OUTPUT);
-  pinMode(HC_ECHO_LEFT, INPUT);
-  pinMode(HC_TRIG_BACK, OUTPUT);
-  pinMode(HC_ECHO_BACK, INPUT);
-
-  // ENCODER PIN AYARI
-  pinMode(ENC_FL_CLK, INPUT_PULLUP);
-  pinMode(ENC_FR_CLK, INPUT_PULLUP);
-  attachInterrupt(ENC_FL_CLK, isr_enc_fl, RISING);
-  attachInterrupt(ENC_FR_CLK, isr_enc_fr, RISING);
-
-  // UART BASLAT (Motor kontrol ESP32’ye bagli)
-  uart1.begin(115200, SERIAL_8N1, UART1_RX, UART1_TX);
-
-  // BASLANGICTA POZ BUL
-  autoLocalize();
+  
+  // Gyro calibration
+  Serial.println("Calibrating gyro...");
+  long sum=0; for(int i=0; i<200; i++) { sum+=mpu.getRotationZ(); delay(5); }
+  gyro_offset = sum/200.0;
+  
+  // Sonar pins
+  pinMode(HC_TRIG_F,OUTPUT); pinMode(HC_ECHO_F,INPUT);
+  pinMode(HC_TRIG_R,OUTPUT); pinMode(HC_ECHO_R,INPUT);
+  pinMode(HC_TRIG_L,OUTPUT); pinMode(HC_ECHO_L,INPUT);
+  pinMode(HC_TRIG_B,OUTPUT); pinMode(HC_ECHO_B,INPUT);
+  
+  // Encoder pins (only CLK for directionless count)
+  pinMode(ENC_FL_CLK,INPUT_PULLUP); attachInterrupt(ENC_FL_CLK,enc_fl_isr, RISING);
+  pinMode(ENC_FR_CLK,INPUT_PULLUP); attachInterrupt(ENC_FR_CLK,enc_fr_isr, RISING);
+  pinMode(ENC_BL_CLK,INPUT_PULLUP); attachInterrupt(ENC_BL_CLK,enc_bl_isr, RISING);
+  pinMode(ENC_BR_CLK,INPUT_PULLUP); attachInterrupt(ENC_BR_CLK,enc_br_isr, RISING);
+  pinMode(ENC_LU_CLK,INPUT_PULLUP); attachInterrupt(ENC_LU_CLK,enc_lu_isr, RISING);
+  pinMode(ENC_LD_CLK,INPUT_PULLUP); attachInterrupt(ENC_LD_CLK,enc_ld_isr, RISING);
+  
+  // UART to motor driver
+  pidUart.begin(115200, SERIAL_8N1, UART1_RX, UART1_TX);
+  
+  // WiFi
+  WiFi.begin(ssid,password);
+  while(WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  udp.begin(localPort);
+  
+  Serial.println("\n PID NAV READY (MM + ENCODER TURNS)");
+  Serial.printf("Mission: ");
+  for(int i=0; i<4; i++) Serial.printf("%s→", locations[mission[i]].name);
+  Serial.println("COMPLETE");
+  
+  xTaskCreatePinnedToCore(controlTask, "PID", 16384, NULL, 6, NULL, 1);
+  xTaskCreatePinnedToCore(networkTask, "NET", 4096, NULL, 2, NULL, 0);
+  vTaskDelete(NULL);
 }
 
-/////////////////////////////////////////////////////
-// HEDEF SECIMI
-/////////////////////////////////////////////////////
-const char* targetID = "SARNICSOL";
-
-/////////////////////////////////////////////////////
-void loop() {
-
-  /////////////////////////////////////////////////////
-  // 1) GYRO OKU → ACI HIZI
-  /////////////////////////////////////////////////////
-  float gz = (mpu.getRotationZ() - gyro_z_offset) / 131.0;
-  float gyro_rad_s = gz * DEG_TO_RAD;
-
-  /////////////////////////////////////////////////////
-  // 2) ENCODER OKU → ILERLEME MESAFESI
-  /////////////////////////////////////////////////////
-  static long old_fl = 0, old_fr = 0;
-  long fl = enc_fl_cnt;
-  long fr = enc_fr_cnt;
-
-  long dfl = fl - old_fl;
-  long dfr = fr - old_fr;
-  old_fl = fl;
-  old_fr = fr;
-
-  float dLeft = dfl * DIST_PER_TICK_MM;
-  float dRight = dfr * DIST_PER_TICK_MM;
-  float dCenter = (dLeft + dRight) / 2.0;
-
-  /////////////////////////////////////////////////////
-  // 3) ODOMETRI → TAHMINI POZ GUNCELLE
-  /////////////////////////////////////////////////////
-  estimatedPose.theta = normAngle(estimatedPose.theta + gyro_rad_s * LOOP_DT);
-  estimatedPose.x += dCenter * cos(estimatedPose.theta);
-  estimatedPose.y += dCenter * sin(estimatedPose.theta);
-
-  /////////////////////////////////////////////////////
-  // 4) SONAR ILE KONUM DUZELTME
-  /////////////////////////////////////////////////////
-  float sonarX = readSonarMM(HC_TRIG_LEFT, HC_ECHO_LEFT);
-  float sonarY = readSonarMM(HC_TRIG_BACK, HC_ECHO_BACK);
-
-  float alpha = 0.85; // Encoder agirligi (0.0–1.0)
-  estimatedPose.x = alpha * estimatedPose.x + (1 - alpha) * sonarX;
-  estimatedPose.y = alpha * estimatedPose.y + (1 - alpha) * sonarY;
-
-  /////////////////////////////////////////////////////
-  // 5) HEDEF KOORDINATINI BUL
-  /////////////////////////////////////////////////////
-  int X_target = 0, Y_target = 0;
-  for (auto &loc : locations) {
-    if (strcmp(loc.id, targetID) == 0) {
-      X_target = loc.x;
-      Y_target = loc.y;
+void controlTask(void *param) {
+  TickType_t lastWake = xTaskGetTickCount();
+  const TickType_t freq = 10 / portTICK_PERIOD_MS; // 100Hz
+  
+  long old_fl=0, old_fr=0;
+  unsigned long lastTime = micros();
+  
+  while(1) {
+    unsigned long now = micros();
+    float dt = (now-lastTime)/1e6; 
+    if(dt<0.001f) dt=0.001f;
+    lastTime = now;
+    
+    // === SENSORS ===
+    sonar_f = readSonar(HC_TRIG_F,HC_ECHO_F);
+    sonar_r = readSonar(HC_TRIG_R,HC_ECHO_R);
+    sonar_l = readSonar(HC_TRIG_L,HC_ECHO_L);
+    sonar_b = readSonar(HC_TRIG_B,HC_ECHO_B);
+    
+    // === ODOMETRY ===
+    long fl=enc_fl, fr=enc_fr;
+    float dleft = (fl-old_fl)*DIST_PER_TICK*1000;  // mm
+    float dright = (fr-old_fr)*DIST_PER_TICK*1000;
+    float dcenter = (dleft+dright)/2;
+    old_fl=fl; old_fr=fr;
+    
+    float height = (enc_lu-enc_ld)*LIFT_MM_PER_TICK;
+    
+    // === POSE UPDATE ===
+    xSemaphoreTake(mutexPose, portMAX_DELAY);
+    estimatedPose.x += dcenter*cos(estimatedPose.theta);
+    estimatedPose.y += dcenter*sin(estimatedPose.theta);
+    estimatedPose.height = height;
+    
+    int16_t gz = mpu.getRotationZ();
+    float gyro = ((gz-gyro_offset)/131.0f) * DEG_TO_RAD * dt;
+    estimatedPose.theta += gyro;
+    estimatedPose.theta = fmod(estimatedPose.theta+3*PI, TWO_PI) - PI;
+    xSemaphoreGive(mutexPose);
+    
+    // === NAVIGATION ===
+    if(targetIndex>=0 && !navigating) {
+      navigating = true;
+      Serial.printf(" TARGET %s (%.0f,%.0f)\n", 
+        locations[targetIndex].name, locations[targetIndex].x, locations[targetIndex].y);
     }
+    
+    if(navigating && targetIndex>=0) {
+      // SAFETY STOP
+      if(sonar_f<STOP_DIST || sonar_r<STOP_DIST || sonar_l<STOP_DIST || sonar_b<STOP_DIST) {
+        pidUart.println("STOP");
+        navigating = false;
+        Serial.printf(" COLLISION! sonar_f=%.0fmm\n", sonar_f*1000);
+        vTaskDelay(500/portTICK_PERIOD_MS);
+        continue;
+      }
+      
+      // Errors
+      float tx=locations[targetIndex].x, ty=locations[targetIndex].y;
+      float dx=tx-estimatedPose.x, dy=ty-estimatedPose.y;
+      float dist=sqrtf(dx*dx+dy*dy);
+      float tgt_theta=atan2f(dy,dx);
+      float theta_err = tgt_theta-estimatedPose.theta;
+      theta_err = fmodf(theta_err+3*PI, TWO_PI)-PI;
+      
+      // PID
+      pid_dist_i += dist*dt; pid_dist_i=constrain(pid_dist_i,-500,500);
+      float dist_d = (dist-pid_dist_prev)/dt;
+      float v_cmd = constrain(1.8f*dist + 0.3f*pid_dist_i + 0.4f*dist_d, 50, 800);
+      
+      pid_theta_i += theta_err*dt; pid_theta_i=constrain(pid_theta_i,-2,2);
+      float theta_d = (theta_err-pid_theta_prev)/dt;
+      float w_cmd = constrain(2.2f*theta_err + 0.4f*pid_theta_i + 0.3f*theta_d, -3,3);
+      
+      // EXECUTE with encoder turns
+      executeMove(v_cmd, w_cmd);
+      
+      pid_dist_prev=dist; pid_theta_prev=theta_err;
+      
+      // ARRIVED?
+      if(dist<120 && fabsf(theta_err)<0.15f) {  // 12cm tolerance
+        pidUart.println("STOP");
+        Serial.printf(" ARRIVED %s! (err=%.0fmm)\n", locations[targetIndex].name, dist);
+        
+        // Mission complete check
+        if(autoMission) {
+          missionStep++;
+          if(missionStep >= 4) {
+            Serial.println(" MISSION COMPLETE!");
+            autoMission = false;
+          } else {
+            targetIndex = mission[missionStep];
+            navigating = false;  // Reset for next step
+            Serial.printf(" Next: %s\n", locations[targetIndex].name);
+            vTaskDelay(2000/portTICK_PERIOD_MS);
+          }
+        } else {
+          targetIndex = -1;
+        }
+        navigating = false;
+      }
+    }
+    
+    vTaskDelayUntil(&lastWake, freq);
   }
+}
 
-  /////////////////////////////////////////////////////
-  // 6) HEDEFE GORE ACI VE MESAFE HESAPLA
-  /////////////////////////////////////////////////////
-  float dx = X_target - estimatedPose.x;
-  float dy = Y_target - estimatedPose.y;
-
-  float heading = atan2(dy, dx);
-  float distance = sqrt(dx*dx + dy*dy);
-  float angErr = normAngle(heading - estimatedPose.theta);
-
-  /////////////////////////////////////////////////////
-  // 7) HIZ KONTROLU (NORMAL SURUS)
-  /////////////////////////////////////////////////////
-  float v = constrain(distance * 0.6, 0, 300); // ileri hiz
-  float w = constrain(angErr * 2.0, -2.5, 2.5); // donus hizi
-
-  /////////////////////////////////////////////////////
-  // 8) DOCKING MODU (HASSAS YAKLASMA)
-  /////////////////////////////////////////////////////
-  if (distance < 200) {
-    v = constrain(distance * 0.25, 0, 80);
-    w = constrain(angErr * 3.0, -1.2, 1.2);
+void networkTask(void *param) {
+  while(1) {
+    int pkt = udp.parsePacket();
+    if(pkt) {
+      char buf[64]; 
+      int len = udp.read(buf,64);
+      buf[len]=0;
+      String cmd = String(buf);
+      cmd.trim();
+      
+      if(cmd=="START") {
+        autoMission = true;
+        missionStep = 0;
+        targetIndex = mission[0];
+        Serial.println(" AUTO MISSION START");
+      }
+      else if(cmd.startsWith("GO ")) {
+        targetIndex = cmd.substring(3).toInt();
+        if(targetIndex>=0 && targetIndex<NUM_LOCATIONS) {
+          autoMission = false;
+          Serial.printf(" MANUAL GO %d=%s\n", targetIndex, locations[targetIndex].name);
+        }
+      }
+      else if(cmd=="STOP") {
+        targetIndex=-1; navigating=false; autoMission=false;
+        pidUart.println("STOP");
+        Serial.println(" EMERGENCY STOP");
+      }
+    }
+    
+    // Broadcast pose
+    xSemaphoreTake(mutexPose, portMAX_DELAY);
+    Serial.printf("POS: %.0f %.0f %.1f h=%.0f\n", 
+      estimatedPose.x, estimatedPose.y, estimatedPose.theta*180/PI, estimatedPose.height);
+    xSemaphoreGive(mutexPose);
+    
+    vTaskDelay(100/portTICK_PERIOD_MS);
   }
+}
 
-  // HEDEFE ULASINCA DUR
-  if (distance < 10) {
-    v = 0;
-    w = 0;
+void executeMove(float v, float w) {
+  // Convert mm/s, rad/s → encoder turns (1 turn = ~314mm circumference)
+  const float MM_PER_TURN = 314.0f;  // PI*100mm wheel
+  const float TURN_TIME_MS = 500;    // Base execution time
+  
+  if(fabsf(w) > 0.8f) {  // ROTATE dominant (>80°/s equivalent)
+    int dir = w>0 ? 1 : 0;
+    int turns = constrain(fabsf(w)*0.8f, 0.5f, 3.0f);  // 0.5-3 turns
+    pidUart.printf("DONUS %d %d\n", 200, (int)(turns*10));  // 1 decimal
   }
+  else if(v > 30) {  // FORWARD
+    int turns = constrain(v*0.6f/MM_PER_TURN, 0.5f, 8.0f);
+    pidUart.printf("ILERI %d %d\n", 220, (int)(turns*10));
+  }
+  else if(v < -30) {  // BACKWARD
+    int turns = constrain((-v)*0.6f/MM_PER_TURN, 0.5f, 8.0f);
+    pidUart.printf("GERI %d %d\n", 220, (int)(turns*10));
+  }
+  else if(w > 0.2f) {  // RIGHT STRAFE
+    int turns = constrain(w*0.4f, 0.3f, 2.0f);
+    pidUart.printf("SAG %d %d\n", 200, (int)(turns*10));
+  }
+  else if(w < -0.2f) {  // LEFT STRAFE
+    int turns = constrain((-w)*0.4f, 0.3f, 2.0f);
+    pidUart.printf("SOL %d %d\n", 200, (int)(turns*10));
+  }
+}
 
-  /////////////////////////////////////////////////////
-  // 9) MOTOR KOMUTUNU DIGER ESP32'YE GONDER
-  /////////////////////////////////////////////////////
-  uart1.print("CMD V=");
-  uart1.print(v, 2);
-  uart1.print(" W=");
-  uart1.println(w, 3);
-
-  /////////////////////////////////////////////////////
-  // 10) DEBUG TELEMETRI (USB SERIAL)
-  /////////////////////////////////////////////////////
-  Serial.print("POS: ");
-  Serial.print(estimatedPose.x); Serial.print(", ");
-  Serial.print(estimatedPose.y);
-  Serial.print("  TH: ");
-  Serial.print(estimatedPose.theta * 57.3);
-  Serial.print("  DIST: ");
-  Serial.println(distance);
-
-  delay(20);
+float readSonar(int trig, int echo) {
+  digitalWrite(trig,LOW); delayMicroseconds(2);
+  digitalWrite(trig,HIGH); delayMicroseconds(10);
+  digitalWrite(trig,LOW);
+  long duration = pulseIn(echo,HIGH,25000);
+  return duration==0 ? 4.0f : (duration*0.034f/2.0f);
 }
