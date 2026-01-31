@@ -1,8 +1,9 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <ESP32Servo.h>
 
-// --- MOTOR PIN TANIMLARI ---
+// --- MOTOR PIN DEFINITIONS ---
 const int RL_PWM = 7;   
 const int RL_IN1 = 8;   
 const int RL_IN2 = 9;   
@@ -24,83 +25,53 @@ const int ER_IN1 = 2;
 const int ER_IN2 = 42;
 
 const int EL_PWM = 18;
-const int EL_IN1 = 38;
-const int EL_IN2 = 39;
+const int EL_IN1 = 19;
+const int EL_IN2 = 21;
 
-const int E_LID = 41;
-const int B_LID = 14;
-const int H_LID = 40;
+const int SERVO_PIN = 41;
+Servo lidServo;
 
-// --- UDP AYARLARI ---
 WiFiUDP udp;
 unsigned int localPort = 4210;
 char packetBuffer[255];
 
-// --- DEĞİŞKENLER ---
-float a0 = 0, a2 = 0, a4 = 0, a5 = 0;
-bool button11_up = false, button12_down = false, button0_lid = false;
+float a0=0, a2=0, a4=0, a5=0;
+bool b0=false, b11=false, b12=false;
 String lastMsg = "";
 
-float last_a0 = 999, last_a2 = 999, last_a4 = 999, last_a5 = 999;
-bool last_button11 = false, last_button12 = false, last_button0 = false;
+float last_a0=999, last_a2=999, last_a4=999, last_a5=999;
+bool last_b0=false, last_b11=false, last_b12=false;
 
-// Asansör zamanlayıcıları
-unsigned long elevator_up_start = 0;
-unsigned long elevator_down_start = 0;
-unsigned long elevator_up_total = 0;
-unsigned long elevator_down_total = 0;
-const unsigned long ELEVATOR_LIMIT_MS = 3000;
-
-// LID durumu
-bool lid_open = false;
-bool lid_moving = false;
-unsigned long lid_move_start = 0;
-const unsigned long LID_MOVE_DURATION = 500;
+// ELEVATOR TIMERS
+unsigned long elevUpStart=0, elevDownStart=0;
+unsigned long elevUpTotal=0, elevDownTotal=0;
+const unsigned long ELEV_LIMIT = 3000;
+bool elevUpActive=false, elevDownActive=false;
+bool elevUpLocked=false, elevDownLocked=false;
+bool lidOpen = false;
+unsigned long lastControl = 0;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("BASLATILIYOR...");
+  Serial.println("BASLATILDI");
   
-  // Pinleri ayarla - YENİ PİNLER DAHİL
-  pinMode(RL_PWM, OUTPUT); 
-  pinMode(RL_IN1, OUTPUT); 
-  pinMode(RL_IN2, OUTPUT);
-
-  pinMode(RR_PWM, OUTPUT); 
-  pinMode(RR_IN1, OUTPUT); 
-  pinMode(RR_IN2, OUTPUT);
-
-  pinMode(FL_PWM, OUTPUT); 
-  pinMode(FL_IN1, OUTPUT);
-  pinMode(FL_IN2, OUTPUT);
-
-  pinMode(FR_PWM, OUTPUT);
-  pinMode(FR_IN1, OUTPUT); 
-  pinMode(FR_IN2, OUTPUT);
-
-  pinMode(ER_PWM, OUTPUT); 
-  pinMode(ER_IN1, OUTPUT); 
-  pinMode(ER_IN2, OUTPUT);
-
-  pinMode(EL_PWM, OUTPUT); 
-  pinMode(EL_IN1, OUTPUT); 
-  pinMode(EL_IN2, OUTPUT);
-
-  pinMode(E_LID, OUTPUT); 
-  pinMode(B_LID, OUTPUT); 
-  pinMode(H_LID, OUTPUT);
+  int pins[] = {RL_PWM, RL_IN1, RL_IN2, RR_PWM, RR_IN1, RR_IN2, FL_PWM, FL_IN1, FL_IN2, 
+                FR_PWM, FR_IN1, FR_IN2, ER_IN1, ER_IN2, ER_PWM, EL_IN1, EL_IN2, EL_PWM};
+  for(int p : pins) pinMode(p, OUTPUT);
   
-  // WiFi bağlantısı
+  lidServo.attach(SERVO_PIN);
+  lidServo.write(0);
+  lidOpen = false;
+
   WiFi.begin("LAGARIMEDYA", "lagari5253");
-  Serial.print("WIFI BAĞLANIYOR");
+  Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("\nWIFI BAĞLANDI!");
-  Serial.print("IP: "); 
-  Serial.println(WiFi.localIP());
   
+  Serial.println("\nWiFi OK!");
+  Serial.print("IP: "); Serial.println(WiFi.localIP());
   udp.begin(localPort);
 }
 
@@ -111,253 +82,199 @@ void loop() {
     packetBuffer[len] = 0;
     String msg = String(packetBuffer);
     
-    Serial.print("RAW: "); 
-    Serial.println(msg);
+    if (millis() - lastControl < 50) return;
+    lastControl = millis();
     
     if (msg == lastMsg) return;
     lastMsg = msg;
     
-    parseAxis(msg);
-    parseButtons(msg);
-    handleLid();
-    handleElevator();
-    chassisMovement();
+    parseControls(msg);
+    controlElevator();
+    controlLid();
+    controlChassis();
   }
 }
 
-void parseAxis(String msg) {
-  bool changed = false;
-  
-  if (msg.startsWith("AXIS 0 ")) {
-    float new_val = msg.substring(7).toFloat();
-    if (abs(new_val - a0) > 0.01) {
-      a0 = new_val;
-      if (abs(a0 - last_a0) > 0.01) {
-        Serial.printf("A0:%.3f ", a0);
-        last_a0 = a0;
-        changed = true;
-      }
-    }
-  }
-  
-  if (msg.startsWith("AXIS 2 ")) {
-    float new_val = msg.substring(7).toFloat();
-    if (abs(new_val - a2) > 0.01) {
-      a2 = new_val;
-      if (abs(a2 - last_a2) > 0.01) {
-        Serial.printf("A2:%.3f ", a2);
-        last_a2 = a2;
-        changed = true;
-      }
-    }
-  }
-  
-  if (msg.startsWith("AXIS 4 ")) {
-    float new_val = msg.substring(7).toFloat();
-    if (abs(new_val - a4) > 0.01) {
-      a4 = new_val;
-      if (abs(a4 - last_a4) > 0.01) {
-        Serial.printf("A4:%.3f ", a4);
-        last_a4 = a4;
-        changed = true;
-      }
-    }
-  }
-  
-  if (msg.startsWith("AXIS 5 ")) {
-    float new_val = msg.substring(7).toFloat();
-    if (abs(new_val - a5) > 0.01) {
-      a5 = new_val;
-      if (abs(a5 - last_a5) > 0.01) {
-        Serial.printf("A5:%.3f\n", a5);
-        last_a5 = a5;
-        changed = true;
-      }
-    }
-  }
-  
-  if (changed) Serial.println();
+void parseControls(String msg) {
+  if (msg.startsWith("AXIS 0 ")) a0 = msg.substring(7).toFloat();
+  if (msg.startsWith("AXIS 2 ")) a2 = msg.substring(7).toFloat();
+  if (msg.startsWith("AXIS 4 ")) a4 = msg.substring(7).toFloat();
+  if (msg.startsWith("AXIS 5 ")) a5 = msg.substring(7).toFloat();
+  if (msg.startsWith("BUTTON 0 ")) b0 = (msg.substring(9).toFloat() > 0.5);
+  if (msg.startsWith("BUTTON 11 ")) b11 = (msg.substring(10).toFloat() > 0.5);
+  if (msg.startsWith("BUTTON 12 ")) b12 = (msg.substring(10).toFloat() > 0.5);
 }
 
-void parseButtons(String msg) {
-  if (msg.startsWith("BUTTON 11 ")) {
-    float val = msg.substring(9).toFloat();
-    bool state = (val > 0.5);
-    if (state != last_button11) {
-      button11_up = state;
-      last_button11 = state;
-      Serial.printf("ASANSOR YUKARI: %s\n", state ? "ON" : "OFF");
+void controlElevator() {
+  // YUKARIYA ÇIKMA KONTROLÜ
+  if (b11 && !elevUpLocked) {
+    if (!elevUpActive) {
+      elevUpStart = millis();
+      elevUpTotal = 0;
+      elevUpActive = true;
     }
-  }
-  
-  if (msg.startsWith("BUTTON 12 ")) {
-    float val = msg.substring(9).toFloat();
-    bool state = (val > 0.5);
-    if (state != last_button12) {
-      button12_down = state;
-      last_button12 = state;
-      Serial.printf("ASANSOR ASAGI: %s\n", state ? "ON" : "OFF");
-    }
-  }
-  
-  if (msg.startsWith("BUTTON 0 ")) {
-    float val = msg.substring(8).toFloat();
-    bool state = (val > 0.5);
-    if (state && !last_button0) {
-      lid_open = !lid_open;
-      lid_moving = true;
-      lid_move_start = millis();
-      Serial.printf("KAPAK: %s\n", lid_open ? "ACILIYOR" : "KAPANIYOR");
-    }
-    last_button0 = state;
-  }
-}
-
-void handleElevator() {
-  unsigned long now = millis();
-  
-  // YUKARI
-  static bool up_running = false;
-  if (button11_up && elevator_up_total < ELEVATOR_LIMIT_MS) {
-    if (!up_running) {
-      elevator_up_start = now;
-      up_running = true;
-    }
-    unsigned long elapsed = now - elevator_up_start;
-    if (elapsed > 100) {
+    elevUpTotal = millis() - elevUpStart;
+    
+    if (elevUpTotal < ELEV_LIMIT) {
       yukari(200);
-      elevator_up_total = now - elevator_up_start;
-      Serial.println("ASANSOR YUKARI 200PWM");
+    } else {
+      edur();
+      elevUpLocked = true;
+      elevUpActive = false;
     }
-  } else if (button11_up) {
+  } else if (!b11 && elevUpActive) {
     edur();
-    Serial.println("ASANSOR YUKARI LIMIT");
-  } else if (up_running) {
-    elevator_up_total += (now - elevator_up_start);
-    up_running = false;
+    elevUpActive = false;
   }
   
-  // ASAGI
-  static bool down_running = false;
-  if (button12_down && elevator_down_total < ELEVATOR_LIMIT_MS) {
-    if (!down_running) {
-      elevator_down_start = now;
-      down_running = true;
+  // AŞAĞIYA İNME KONTROLÜ
+  if (b12 && !elevDownLocked) {
+    if (!elevDownActive) {
+      elevDownStart = millis();
+      elevDownTotal = 0;
+      elevDownActive = true;
     }
-    unsigned long elapsed = now - elevator_down_start;
-    if (elapsed > 100) {
+    elevDownTotal = millis() - elevDownStart;
+    
+    if (elevDownTotal < ELEV_LIMIT) {
       asagi(200);
-      elevator_down_total = now - elevator_down_start;
-      Serial.println("ASANSOR ASAGI 200PWM");
+    } else {
+      edur();
+      elevDownLocked = true;
+      elevDownActive = false;
     }
-  } else if (button12_down) {
+  } else if (!b12 && elevDownActive) {
     edur();
-    Serial.println("ASANSOR ASAGI LIMIT");
-  } else if (down_running) {
-    elevator_down_total += (now - elevator_down_start);
-    down_running = false;
+    elevDownActive = false;
+  }
+  
+  // HER İKİ BUTON BIRAKILINCA LOCK'U KALDIR
+  if (!b11 && !b12) {
+    elevUpLocked = false;
+    elevDownLocked = false;
   }
 }
 
-void handleLid() {
-  unsigned long now = millis();
-  if (!lid_moving) return;
-  
-  unsigned long elapsed = now - lid_move_start;
-  if (elapsed >= LID_MOVE_DURATION) {
-    analogWrite(E_LID, 0);  // E_LID PWM KAPAT
-    lid_moving = false;
-    Serial.printf("E_LID %s TAMAMLANDI\n", lid_open ? "ACIK (90°)" : "KAPALI (0°)");  
+void controlLid() {
+  if (b0 && !last_b0) {
+    lidOpen = !lidOpen;
+    if (lidOpen) {
+      lidServo.write(90);
+      Serial.println("LID ACILDI");
+    } else {
+      lidServo.write(0);
+      Serial.println("LID KAPANDI");
+    }
+  }
+  last_b0 = b0;
+}
+
+void controlChassis() {
+  bool deadzone = (abs(a2)<=0.05 && abs(a0)<=0.05 && a5<=-0.9 && a4<=-0.9);
+  if (deadzone) {
+    aniDur();
     return;
   }
-  analogWrite(E_LID, 200);  // SADECE E_LID ÇALIŞIR
-}
-
-
-void chassisMovement() {
-  bool has_fwdback = (abs(a5 + 1) > 0.1 || abs(a4 + 1) > 0.1);
-  bool has_siderot = (abs(a2) > 0.05 || abs(a0) > 0.05);
   
-  if (has_fwdback && has_siderot) {
-    Serial.println("MIX 40/60 MOD");
-    mixMovement();
-  }
-  else if (a2 < -0.05) {
-    int pwm = map(constrain((int)(abs(a2) * 100), 5, 100), 5, 100, 50, 255);
-    Serial.printf("SOL KAYMA PWM=%d\n", pwm);
-    sol(pwm);
-  }
-  else if (a2 > 0.05) {
-    int pwm = map(constrain((int)(a2 * 100), 5, 100), 5, 100, 50, 255);
-    Serial.printf("SAG KAYMA PWM=%d\n", pwm);
-    sag(pwm);
+  if (abs(a2) > 0.05) {
+    int slide_pwm = constrain(map(abs(a2)*100, 5, 100, 80, 255), 80, 255);
+    if (a2 < 0) {
+      sol(slide_pwm);
+    } else {
+      sag(slide_pwm);
+    }
   }
   else if (abs(a0) > 0.05) {
-    int pwm = map(constrain((int)(abs(a0) * 100), 5, 100), 5, 100, 50, 255);
-    Serial.printf("DONUS PWM=%d\n", pwm);
+    int pwm = constrain(map(abs(a0)*100, 5, 100, 80, 255), 80, 255);
     donus360(pwm, a0 > 0);
   }
   else if (a5 > -0.9) {
-    int pwm = map(constrain((int)((a5 + 1) * 50), 0, 100), 0, 100, 0, 255);
-    Serial.printf("ILERI PWM=%d\n", pwm);
+    int pwm = constrain(map((a5+1)*50, 0, 100, 0, 255), 0, 255);
     ileri(pwm);
   }
   else if (a4 > -0.9) {
-    int pwm = map(constrain((int)((a4 + 1) * 50), 0, 100), 0, 100, 0, 255);
-    Serial.printf("GERI PWM=%d\n", pwm);
+    int pwm = constrain(map((a4+1)*50, 0, 100, 0, 255), 0, 255);
     geri(pwm);
   }
-  else {
-    Serial.println("DUR! ANI DURMA");
-    aniDurChassis();
-  }
 }
 
-void mixMovement() {
-  // **HATA DÜZELTİLDİ: max() → constrain()**
-  float fwd = constrain((a5 + 1) * 0.4, 0, 1);
-  float back = constrain((a4 + 1) * 0.4, 0, 1);
-  float side = constrain(a2 * 0.6, -1, 1);
-  float rot = constrain(a0 * 0.6, -1, 1);
-  
-  int FL = constrain((int)((fwd - side + rot) * 255), -255, 255);
-  int FR = constrain((int)((fwd + side - rot) * 255), -255, 255);
-  int RL = constrain((int)((back + side + rot) * 255), -255, 255);
-  int RR = constrain((int)((back - side - rot) * 255), -255, 255);
-  
-  setMotor(FL_PWM, FL_IN1, FL_IN2, abs(FL), FL >= 0);
-  setMotor(FR_PWM, FR_IN1, FR_IN2, abs(FR), FR >= 0);
-  setMotor(RL_PWM, RL_IN1, RL_IN2, abs(RL), RL >= 0);
-  setMotor(RR_PWM, RR_IN1, RR_IN2, abs(RR), RR >= 0);
+void sol_ileri_mix(int pwm) {
+  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
+  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
+  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
+  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
+  analogWrite(RR_PWM, pwm); analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm); analogWrite(FR_PWM, pwm);
 }
 
-void setMotor(int pwm_pin, int in1, int in2, int pwm, bool forward) {
-  digitalWrite(in1, forward ? HIGH : LOW);
-  digitalWrite(in2, forward ? LOW : HIGH);
-  analogWrite(pwm_pin, pwm);
+void sag_ileri_mix(int pwm) {
+  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
+  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
+  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
+  analogWrite(RR_PWM, pwm); analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm); analogWrite(FR_PWM, pwm);
 }
 
-// MOTOR FONKSİYONLARI (aynı kaldı)
+void sol_geri_mix(int pwm) {
+  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
+  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
+  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
+  analogWrite(RR_PWM, pwm); analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm); analogWrite(FR_PWM, pwm);
+}
+
+void sag_geri_mix(int pwm) {
+  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
+  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
+  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
+  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
+  analogWrite(RR_PWM, pwm); analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm); analogWrite(FR_PWM, pwm);
+}
+
+void ileri_mix(int PWM) {
+  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
+  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
+  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
+  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
+  analogWrite(RR_PWM, PWM); analogWrite(RL_PWM, PWM * 0.75);
+  analogWrite(FL_PWM, PWM * 0.75); analogWrite(FR_PWM, PWM);
+}
+
+void aniDur() {
+  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, HIGH);
+  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, HIGH);
+  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, HIGH);
+  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, HIGH);
+  analogWrite(RR_PWM, 255); analogWrite(RL_PWM, 255);
+  analogWrite(FL_PWM, 255); analogWrite(FR_PWM, 255);
+  delay(30);
+  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, LOW);
+  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, LOW);
+  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, LOW);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, LOW);
+  analogWrite(RR_PWM, 0); analogWrite(RL_PWM, 0);
+  analogWrite(FL_PWM, 0); analogWrite(FR_PWM, 0);
+}
+
 void sol(int PWM) {
-  digitalWrite(RR_IN1, LOW);  
-  digitalWrite(RR_IN2, HIGH);
-  digitalWrite(FR_IN1, HIGH); 
-  digitalWrite(FR_IN2, LOW);
-  digitalWrite(RL_IN1, HIGH);
-  digitalWrite(RL_IN2, LOW);
-  digitalWrite(FL_IN1, LOW);  
-  digitalWrite(FL_IN2, HIGH);
-  analogWrite(RR_PWM, PWM); analogWrite(FR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);  analogWrite(FL_PWM, PWM);
+  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
+  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
+  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
+  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
+  analogWrite(RR_PWM, PWM); analogWrite(RL_PWM, PWM);
+  analogWrite(FL_PWM, PWM); analogWrite(FR_PWM, PWM);
 }
 
 void sag(int PWM) {
   digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
-  digitalWrite(FR_IN1, LOW);  digitalWrite(FR_IN2, HIGH);
-  digitalWrite(RL_IN1, LOW);  digitalWrite(RL_IN2, HIGH);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
+  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
   digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
-  analogWrite(RR_PWM, PWM); analogWrite(FR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);  analogWrite(FL_PWM, PWM);
+  analogWrite(RR_PWM, PWM); analogWrite(RL_PWM, PWM);
+  analogWrite(FL_PWM, PWM); analogWrite(FR_PWM, PWM);
 }
 
 void ileri(int PWM) {
@@ -365,60 +282,49 @@ void ileri(int PWM) {
   digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
   digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
   digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
-  analogWrite(RR_PWM, PWM); analogWrite(FR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);  analogWrite(FL_PWM, PWM);
+  analogWrite(RR_PWM, PWM); analogWrite(RL_PWM, PWM);
+  analogWrite(FL_PWM, PWM); analogWrite(FR_PWM, PWM);
 }
 
 void geri(int PWM) {
-  digitalWrite(RR_IN1, LOW);  digitalWrite(RR_IN2, HIGH);
-  digitalWrite(FR_IN1, LOW);  digitalWrite(FR_IN2, HIGH);
-  digitalWrite(RL_IN1, LOW);  digitalWrite(RL_IN2, HIGH);
-  digitalWrite(FL_IN1, LOW);  digitalWrite(FL_IN2, HIGH);
-  analogWrite(RR_PWM, PWM); analogWrite(FR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);  analogWrite(FL_PWM, PWM);
+  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
+  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
+  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
+  analogWrite(RR_PWM, PWM); analogWrite(RL_PWM, PWM);
+  analogWrite(FL_PWM, PWM); analogWrite(FR_PWM, PWM);
 }
 
-void donus360(int PWM, bool saga) {
-  if (saga) {
-    digitalWrite(RR_IN1, LOW);  
-    digitalWrite(RR_IN2, HIGH);
-    digitalWrite(FR_IN1, LOW);  
-    digitalWrite(FR_IN2, HIGH);
-    digitalWrite(RL_IN1, HIGH); 
-    digitalWrite(RL_IN2, LOW);
-    digitalWrite(FL_IN1, HIGH); 
-    digitalWrite(FL_IN2, LOW);
+void donus360(int PWM, bool sagaDonus) {
+  if (sagaDonus) {
+    digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
+    digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
+    digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
+    digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
   } else {
-    digitalWrite(RR_IN1, HIGH); 
-    digitalWrite(RR_IN2, LOW);
-    digitalWrite(FR_IN1, HIGH); 
-    digitalWrite(FR_IN2, LOW);
-    digitalWrite(RL_IN1, LOW);  
-    digitalWrite(RL_IN2, HIGH);
-    digitalWrite(FL_IN1, LOW);  
-    digitalWrite(FL_IN2, HIGH);
+    digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
+    digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
+    digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
+    digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
   }
-  analogWrite(RR_PWM, PWM); 
-  analogWrite(FR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);  
-  analogWrite(FL_PWM, PWM);
+  analogWrite(RR_PWM, PWM); analogWrite(RL_PWM, PWM);
+  analogWrite(FL_PWM, PWM); analogWrite(FR_PWM, PWM);
 }
 
 void yukari(int PWM) {
-  digitalWrite(EL_IN1, HIGH); 
-  digitalWrite(EL_IN2, LOW);
-  digitalWrite(ER_IN1, LOW);  
-  digitalWrite(ER_IN2, HIGH);
-  analogWrite(EL_PWM, PWM);   
+  digitalWrite(EL_IN1, HIGH); digitalWrite(EL_IN2, LOW);
+  digitalWrite(ER_IN1, LOW); digitalWrite(ER_IN2, HIGH);
+  analogWrite(EL_PWM, PWM);
   analogWrite(ER_PWM, PWM);
 }
 
 void asagi(int PWM) {
-  digitalWrite(EL_IN1, LOW);  
+  digitalWrite(EL_IN1, LOW); 
   digitalWrite(EL_IN2, HIGH);
   digitalWrite(ER_IN1, HIGH); 
   digitalWrite(ER_IN2, LOW);
-  analogWrite(EL_PWM, PWM);  
+  
+  analogWrite(EL_PWM, PWM);
   analogWrite(ER_PWM, PWM);
 }
 
@@ -427,57 +333,17 @@ void edur() {
   digitalWrite(ER_IN2, HIGH);
   digitalWrite(EL_IN1, HIGH); 
   digitalWrite(EL_IN2, HIGH);
-  analogWrite(EL_PWM, 255);   
+  
+  analogWrite(EL_PWM, 255);
   analogWrite(ER_PWM, 255);
+  
   delay(30);
-  digitalWrite(ER_IN1, LOW);  
+  
+  digitalWrite(ER_IN1, LOW); 
   digitalWrite(ER_IN2, LOW);
-  digitalWrite(EL_IN1, LOW);  
+  digitalWrite(EL_IN1, LOW); 
   digitalWrite(EL_IN2, LOW);
-  analogWrite(EL_PWM, 0);    
+  
+  analogWrite(EL_PWM, 0);
   analogWrite(ER_PWM, 0);
-}
-
-void aniDurChassis() {
-  digitalWrite(RR_IN1, HIGH); 
-  digitalWrite(RR_IN2, HIGH);
-  digitalWrite(RL_IN1, HIGH); 
-  digitalWrite(RL_IN2, HIGH);
-  digitalWrite(FL_IN1, HIGH); 
-  digitalWrite(FL_IN2, HIGH);
-  digitalWrite(FR_IN1, HIGH); 
-  digitalWrite(FR_IN2, HIGH);
-  analogWrite(RR_PWM, 255); 
-  analogWrite(RL_PWM, 255);
-  analogWrite(FL_PWM, 255); 
-  analogWrite(FR_PWM, 255);
-  delay(30);
-  digitalWrite(RR_IN1, LOW);  
-  digitalWrite(RR_IN2, LOW);
-  digitalWrite(RL_IN1, LOW);  
-  digitalWrite(RL_IN2, LOW);
-  digitalWrite(FL_IN1, LOW);  
-  digitalWrite(FL_IN2, LOW);
-  digitalWrite(FR_IN1, LOW);  
-  digitalWrite(FR_IN2, LOW);
-  analogWrite(RR_PWM, 0);   
-  analogWrite(RL_PWM, 0);
-  analogWrite(FL_PWM, 0);    
-  analogWrite(FR_PWM, 0);
-}
-
-// YENİ LID FONKSİYONLARI
-void BLID_open() {
-}
-
-void BLID_close() {
-
-}
-
-void HLID_open() {
-
-}
-
-void HLID_close() {
-
 }

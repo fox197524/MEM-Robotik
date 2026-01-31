@@ -1,15 +1,22 @@
+#!/usr/bin/env python3
 import os
 import pygame
 import socket
+# Python başına EKLE:
+
 
 # Allow joystick events in background
 os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
 
-ESP32_IP = ""   # ESP32 IP adresini buraya yaz 
+ESP32_IP = "172.20.10.3"
 ESP32_PORT = 4210
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Port reuse
+sock.settimeout(2.0)  # Timeout
+print(f"UDP hazır: {ESP32_IP}:{ESP32_PORT}")
+# --- Pygame ve Joystick Başlat ---
 pygame.init()
 pygame.joystick.init()
 
@@ -111,6 +118,8 @@ while running:
         # Hepsini Arduino'ya fırlat
         for msg in msgs:
             sock.sendto(msg.encode(), (ESP32_IP, ESP32_PORT))
+
+    
 
     pygame.display.flip()
     clock.tick(60)
