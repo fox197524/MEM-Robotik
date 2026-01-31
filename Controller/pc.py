@@ -100,9 +100,9 @@ while running:
         axis_Back = joystick.get_axis(0) # 
         axis_turn_360 = joystick.get_axis(4)   # 
         axis_slide_L_R = joystick.get_axis(2) # 
-        axis_elevator_up = joystick.get_button(11)  # Buton 10
-        axis_elevator_down = joystick.get_button(12)  # Buton 11
-        buton_E_LID = joystick.get_button(0)  # Buton 0
+        button_LID = joystick.get_button(0)  # Button 0 - Servo toggle
+        button_elevator_up = joystick.get_button(11)  # Button 11 - Elevator up
+        button_elevator_down = joystick.get_button(12)  # Button 12 - Elevator down
         
         # Paketleri Hazırla
         msgs = [
@@ -110,9 +110,9 @@ while running:
             f"AXIS 0 {axis_Back:.3f}",
             f"AXIS 4 {axis_turn_360:.3f}",
             f"AXIS 2 {axis_slide_L_R:.3f}",
-            f"BUTTON 11 {axis_elevator_up:.3f}",
-            f"BUTTON 12 {axis_elevator_down:.3f}",
-            f"BUTTON 0 {buton_E_LID}"
+            f"BUTTON 0 {1 if button_LID else 0}",
+            f"BUTTON 11 {1 if button_elevator_up else 0}",
+            f"BUTTON 12 {1 if button_elevator_down else 0}"
         ]
         
         # Hepsini Arduino'ya fırlat

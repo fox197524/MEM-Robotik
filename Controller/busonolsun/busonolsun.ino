@@ -1,8 +1,9 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <ESP32Servo.h>
 
-// --- MOTOR 4 PIN DEFINITIONS 
+// --- MOTOR PIN DEFINITIONS ---
 const int RL_PWM = 7;   
 const int RL_IN1 = 8;   
 const int RL_IN2 = 9;   
@@ -19,42 +20,109 @@ const int FR_PWM = 4;
 const int FR_IN1 = 5;
 const int FR_IN2 = 6;
 
+// --- ELEVATOR LEFT MOTOR ---
+const int EL_PWM = 18;
+const int EL_IN1 = 38;
+const int EL_IN2 = 39;
+
+// --- ELEVATOR RIGHT MOTOR ---
+const int ER_PWM = 1;
+const int ER_IN1 = 2;
+const int ER_IN2 = 42;
+
+// --- SERVO LID ---
+const int SERVO_PIN = 14;
+Servo lidServo;
+
+// --- WIFI SETTINGS ---
 WiFiUDP udp;
 unsigned int localPort = 4210;
 char packetBuffer[255];
-float a0=0, a2=0, a4=0, a5=0;
-String lastMsg = "";
-float last_a0=999, last_a2=999, last_a4=999, last_a5=999;
+
+// --- CONTROL INPUTS ---
+float a0 = 0;   // Rotation axis (left/right spin)
+float a2 = 0;   // Slide axis (left/right strafe)
+float a4 = 0;   // Backward trigger
+float a5 = 0;   // Forward trigger
+bool b0 = false;   // Servo toggle
+bool b11 = false;  // Elevator up
+bool b12 = false;  // Elevator down
+
+// --- ELEVATOR VARIABLES ---
+unsigned long elevUpStart = 0;
+unsigned long elevDownStart = 0;
+unsigned long elevUpTotal = 0;
+unsigned long elevDownTotal = 0;
+const unsigned long ELEV_LIMIT = 3000;  // 3 seconds
+bool elevUpActive = false;
+bool elevDownActive = false;
+bool elevUpLocked = false;
+bool elevDownLocked = false;
+
+// --- SERVO VARIABLES ---
+bool servoOpen = false;
+bool lastB0 = false;
+
+unsigned long lastUpdate = 0;
 
 void setup() {
   Serial.begin(115200);
-  Serial.print("calis");
+  delay(1000);
+  Serial.println("\n\nBASLATILDI!");
   
-  int pins[] = {RL_PWM, RL_IN1, RL_IN2, 
-                RR_PWM, RR_IN1, RR_IN2, 
-                FL_PWM, FL_IN1, FL_IN2, 
-                FR_PWM, FR_IN1, FR_IN2};
-  for(int p : pins) pinMode(p, OUTPUT);
-
+  // Setup motor pins
+  pinMode(RL_PWM, OUTPUT); pinMode(RL_IN1, OUTPUT); pinMode(RL_IN2, OUTPUT);
+  pinMode(RR_PWM, OUTPUT); pinMode(RR_IN1, OUTPUT); pinMode(RR_IN2, OUTPUT);
+  pinMode(FL_PWM, OUTPUT); pinMode(FL_IN1, OUTPUT); pinMode(FL_IN2, OUTPUT);
+  pinMode(FR_PWM, OUTPUT); pinMode(FR_IN1, OUTPUT); pinMode(FR_IN2, OUTPUT);
+  
+  // Elevator motor pins
+  pinMode(EL_PWM, OUTPUT); pinMode(EL_IN1, OUTPUT); pinMode(EL_IN2, OUTPUT);
+  pinMode(ER_PWM, OUTPUT); pinMode(ER_IN1, OUTPUT); pinMode(ER_IN2, OUTPUT);
+  
+  // Initialize all motors to LOW/OFF
+  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, LOW); analogWrite(RL_PWM, 0);
+  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, LOW); analogWrite(RR_PWM, 0);
+  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, LOW); analogWrite(FL_PWM, 0);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, LOW); analogWrite(FR_PWM, 0);
+  
+  // Initialize elevator motors to LOW/OFF
+  digitalWrite(EL_IN1, LOW); digitalWrite(EL_IN2, LOW); analogWrite(EL_PWM, 0);
+  digitalWrite(ER_IN1, LOW); digitalWrite(ER_IN2, LOW); analogWrite(ER_PWM, 0);
+  
+  // Servo
+  lidServo.attach(SERVO_PIN);
+  lidServo.write(0);
+  servoOpen = false;
+  
+  // Stop all motors
+  stopAll();
+  elevatorStop();
+  
+  // WiFi connection
   WiFi.begin("Ben", "sitrayburgbiriki3");
-  Serial.print("Connecting");
-  while (WiFi.status() != WL_CONNECTED) {
+  Serial.print("WiFi Baglaniyor");
+  int timeout = 0;
+  while (WiFi.status() != WL_CONNECTED && timeout < 20) {
     delay(500);
     Serial.print(".");
+    timeout++;
   }
   
-  Serial.println("\nWiFi Connected!");
-  Serial.print("ESP32 IP: "); Serial.println(WiFi.localIP());
+  Serial.println("\nWiFi OK!");
+  Serial.print("IP: "); Serial.println(WiFi.localIP());
   udp.begin(localPort);
+  Serial.println("UDP Basladi");
 }
 
 void loop() {
   // WiFi watchdog
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi lost, restarting...");
+    Serial.println("WiFi Koptu, Restart...");
     ESP.restart();
   }
   
+  // Parse UDP packets
   int packetSize = udp.parsePacket();
   if (packetSize) {
     int len = udp.read(packetBuffer, 255);
@@ -62,182 +130,308 @@ void loop() {
       packetBuffer[len] = 0;
       String msg = String(packetBuffer);
       
-      Serial.print("RAW: "); Serial.println(msg);
+      parseInput(msg);
       
-      if (msg == lastMsg) return;
-      lastMsg = msg;
+      // Send to serial for debugging
+      Serial.printf("A0:%.2f A2:%.2f A4:%.2f A5:%.2f B0:%d B11:%d B12:%d\n", a0, a2, a4, a5, b0, b11, b12);
       
-      bool axisChanged = false;
-      
-      if (msg.startsWith("AXIS 0 ")) {
-        float new_a0 = msg.substring(7).toFloat();
-        if (abs(new_a0 - a0) > 0.01) {
-          a0 = new_a0;
-          if (abs(a0 - last_a0) > 0.01) {
-            Serial.printf("A0:%.3f ", a0);
-            last_a0 = a0;
-            axisChanged = true;
-          }
-        }
-      }
-      if (msg.startsWith("AXIS 2 ")) {
-        float new_a2 = msg.substring(7).toFloat();
-        if (abs(new_a2 - a2) > 0.01) {
-          a2 = new_a2;
-          if (abs(a2 - last_a2) > 0.01) {
-            Serial.printf("A2:%.3f ", a2);
-            last_a2 = a2;
-            axisChanged = true;
-          }
-        }
-      }  
-      if (msg.startsWith("AXIS 4 ")) {
-        float new_a4 = msg.substring(7).toFloat();
-        if (abs(new_a4 - a4) > 0.01) {
-          a4 = new_a4;
-          if (abs(a4 - last_a4) > 0.01) {
-            Serial.printf("A4:%.3f ", a4);
-            last_a4 = a4;
-            axisChanged = true;
-          }
-        }
-      }
-      if (msg.startsWith("AXIS 5 ")) {
-        float new_a5 = msg.substring(7).toFloat();
-        if (abs(new_a5 - a5) > 0.01) {
-          a5 = new_a5;
-          if (abs(a5 - last_a5) > 0.01) {
-            Serial.printf("A5:%.3f\n", a5);
-            last_a5 = a5;
-            axisChanged = true;
-          }
-        }
-      }
-      
-      if (axisChanged) Serial.println();
-      
-      // Movement priority logic with proper PWM calculation
-      if (abs(a2) > 0.05) {  // Steering priority (left/right drift)
-        int pwm_val = constrain(map(abs(a2) * 100, 5, 100, 50, 255), 0, 255);
-        Serial.printf("STEER: a2=%.3f PWM=%d\n", a2, pwm_val);
-        if (a2 < 0) sol(pwm_val);
-        else sag(pwm_val);
-      } 
-      else if (abs(a0) > 0.05) {  // Spin priority (360 turn)
-        int pwm_val = constrain(map(abs(a0) * 100, 5, 100, 50, 255), 0, 255);
-        Serial.printf("SPIN: a0=%.3f PWM=%d\n", a0, pwm_val);
-        donus360(pwm_val, a0 > 0);
-      }
-      else if (abs(a5 + 0.5) > 0.1) {  // Forward/Back on AXIS 5
-        int pwm_val = constrain(map(abs(a5 + 0.5) * 500, 100, 500, 50, 255), 0, 255);
-        Serial.printf("MOVE: a5=%.3f PWM=%d\n", a5, pwm_val);
-        if (a5 > -0.5) ileri(pwm_val);
-        else geri(pwm_val);
-      }
-      else if (abs(a4 + 0.5) > 0.1) {  // Alternative Forward/Back on AXIS 4
-        int pwm_val = constrain(map(abs(a4 + 0.5) * 500, 100, 500, 50, 255), 0, 255);
-        Serial.printf("MOVE: a4=%.3f PWM=%d\n", a4, pwm_val);
-        if (a4 > -0.5) ileri(pwm_val);
-        else geri(pwm_val);
-      }
-      else {
-        Serial.println("STOP");
-        aniDur();
-      }
+      // Process movement
+      processMovement();
+    }
+  } else {
+    // No packet received - ensure all motors are OFF
+    stopAll();
+    controlElevator();  // Still handle elevator timers
+    controlServo();     // Still handle servo
+  }
+}
+
+void parseInput(String msg) {
+  if (msg.startsWith("AXIS 0 ")) a0 = msg.substring(7).toFloat();
+  if (msg.startsWith("AXIS 2 ")) a2 = msg.substring(7).toFloat();
+  if (msg.startsWith("AXIS 4 ")) a4 = msg.substring(7).toFloat();
+  if (msg.startsWith("AXIS 5 ")) a5 = msg.substring(7).toFloat();
+  if (msg.startsWith("BUTTON 0 ")) b0 = (msg.substring(9).toInt() > 0);
+  if (msg.startsWith("BUTTON 11 ")) b11 = (msg.substring(10).toInt() > 0);
+  if (msg.startsWith("BUTTON 12 ")) b12 = (msg.substring(10).toInt() > 0);
+}
+
+void processMovement() {
+  // DEADZONE CHECK - Her şeyi durumlu başlat
+  bool deadzone = (abs(a2) <= 0.1 && abs(a0) <= 0.1 && a5 <= -0.8 && a4 <= -0.8);
+  if (deadzone) {
+    stopAll();
+    return;
+  }
+  
+  // PRIORITY: Slide > Rotation > Forward/Backward
+  
+  // Handle elevator
+  controlElevator();
+  
+  // Handle servo
+  controlServo();
+  
+  // 1. SLIDE HAREKETI (SAG-SOL)
+  if (abs(a2) > 0.15) {
+    int pwm = map(abs(a2) * 100, 15, 100, 100, 255);
+    pwm = constrain(pwm, 100, 255);
+    
+    if (a2 < 0) {
+      Serial.printf("SLIDE LEFT: a2=%.3f pwm=%d\n", a2, pwm);
+      slideLeft(pwm);
+    } else {
+      Serial.printf("SLIDE RIGHT: a2=%.3f pwm=%d\n", a2, pwm);
+      slideRight(pwm);
     }
   }
+  // 2. 360 DONME HAREKETI
+  else if (abs(a0) > 0.15) {
+    int pwm = map(abs(a0) * 100, 15, 100, 100, 255);
+    pwm = constrain(pwm, 100, 255);
+    
+    if (a0 > 0) {
+      Serial.printf("ROTATE RIGHT: a0=%.3f pwm=%d\n", a0, pwm);
+      rotateRight(pwm);
+    } else {
+      Serial.printf("ROTATE LEFT: a0=%.3f pwm=%d\n", a0, pwm);
+      rotateLeft(pwm);
+    }
+  }
+  // 3. ILERI HAREKETI
+  else if (a5 > -0.5) {
+    int pwm = map((a5 + 1) * 50, 0, 100, 80, 255);
+    pwm = constrain(pwm, 80, 255);
+    Serial.printf("FORWARD: a5=%.3f pwm=%d\n", a5, pwm);
+    moveForward(pwm);
+  }
+  // 4. GERI HAREKETI
+  else if (a4 > -0.5) {
+    int pwm = map((a4 + 1) * 50, 0, 100, 80, 255);
+    pwm = constrain(pwm, 80, 255);
+    Serial.printf("BACKWARD: a4=%.3f pwm=%d\n", a4, pwm);
+    moveBackward(pwm);
+  }
+  // 5. DURMA
+  else {
+    Serial.println("STOP ALL");
+    stopAll();
+  }
 }
 
-// FIXED: Proper emergency braking with longer brake time
-void aniDur() {
-  // Apply brakes (short circuit motors)
-  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, HIGH);
-  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, HIGH);
-  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, HIGH);
-  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, HIGH);
+// --- HAREKET FONKSIYONLARI ---
+
+void moveForward(int pwm) {
+  // Tum motorlar ileri - AYNI YÖN
+  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
+  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
+  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
+  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
   
-  analogWrite(RR_PWM, 255);
-  analogWrite(RL_PWM, 255);
-  analogWrite(FL_PWM, 255);
-  analogWrite(FR_PWM, 255);
+  delay(5);
   
-  delay(100);  // Increased brake time for better stopping power
+  analogWrite(RR_PWM, pwm);
+  analogWrite(FR_PWM, pwm);
+  analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm);
   
-  // Coast stop (all off)
+  Serial.printf("FWD: RR=%d FR=%d RL=%d FL=%d\n", pwm, pwm, pwm, pwm);
+}
+
+void moveBackward(int pwm) {
+  // Tum motorlar geri - AYNI YÖN
+  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
+  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
+  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
+  
+  delay(5);
+  
+  analogWrite(RR_PWM, pwm);
+  analogWrite(FR_PWM, pwm);
+  analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm);
+  
+  Serial.printf("BWD: RR=%d FR=%d RL=%d FL=%d\n", pwm, pwm, pwm, pwm);
+}
+
+void slideLeft(int pwm) {
+  // SAG TARAF MOTORLAR ILERIYE, SOL TARAF MOTORLAR GERIYE
+  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
+  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
+  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
+  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
+  
+  analogWrite(RR_PWM, pwm);
+  analogWrite(FR_PWM, pwm);
+  analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm);
+}
+
+void slideRight(int pwm) {
+  // SOL TARAF MOTORLAR ILERIYE, SAG TARAF MOTORLAR GERIYE
+  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
+  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
+  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
+  
+  analogWrite(RR_PWM, pwm);
+  analogWrite(FR_PWM, pwm);
+  analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm);
+}
+
+void rotateLeft(int pwm) {
+  // SOLA DONME: SAGI SAG, SOLU SOL
+  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
+  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
+  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
+  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
+  
+  analogWrite(RR_PWM, pwm);
+  analogWrite(FR_PWM, pwm);
+  analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm);
+}
+
+void rotateRight(int pwm) {
+  // SAGA DONME: SOLU SAG, SAGI SOL
+  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
+  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
+  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
+  
+  analogWrite(RR_PWM, pwm);
+  analogWrite(FR_PWM, pwm);
+  analogWrite(RL_PWM, pwm);
+  analogWrite(FL_PWM, pwm);
+}
+
+void stopAll() {
+  // Tum motorlari immediate OFF
   digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, LOW);
+  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, LOW);
   digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, LOW);
   digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, LOW);
-  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, LOW);
   
   analogWrite(RR_PWM, 0);
+  analogWrite(FR_PWM, 0);
   analogWrite(RL_PWM, 0);
   analogWrite(FL_PWM, 0);
-  analogWrite(FR_PWM, 0);
-}
-
-void sol(int PWM) {
-  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
-  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
-  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
-  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
   
-  analogWrite(RR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);
-  analogWrite(FL_PWM, PWM);
-  analogWrite(FR_PWM, PWM);
+  Serial.println("STOP");
 }
 
-void ileri(int PWM) {
-  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
-  digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
-  digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
-  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
-  
-  analogWrite(RR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);
-  analogWrite(FL_PWM, PWM);
-  analogWrite(FR_PWM, PWM);
-}
+// --- ELEVATOR CONTROL FUNCTIONS ---
 
-void geri(int PWM) {
-  digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
-  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
-  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
-  digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
-  
-  analogWrite(RR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);
-  analogWrite(FL_PWM, PWM);
-  analogWrite(FR_PWM, PWM);
-}
-
-void donus360(int PWM, bool sagaDonus) {
-  if (sagaDonus) {
-    digitalWrite(RR_IN1, LOW); digitalWrite(RR_IN2, HIGH);
-    digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
-    digitalWrite(RL_IN1, HIGH); digitalWrite(RL_IN2, LOW);
-    digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
-  } else {
-    digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
-    digitalWrite(FR_IN1, HIGH); digitalWrite(FR_IN2, LOW);
-    digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
-    digitalWrite(FL_IN1, LOW); digitalWrite(FL_IN2, HIGH);
+void controlElevator() {
+  // YUKARIYA ÇIKMA KONTROLÜ (Button 11)
+  if (b11 && !elevUpLocked) {
+    if (!elevUpActive) {
+      elevUpStart = millis();
+      elevUpActive = true;
+      Serial.println("ASC: UP START");
+    }
+    
+    elevUpTotal = millis() - elevUpStart;
+    if (elevUpTotal < ELEV_LIMIT) {
+      elevatorUp();
+    } else {
+      elevatorStop();
+      elevUpLocked = true;
+      elevUpActive = false;
+      Serial.println("ASC: UP LIMIT REACHED");
+    }
+  } else if (!b11 && elevUpActive) {
+    elevatorStop();
+    elevUpActive = false;
   }
   
-  analogWrite(RR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);
-  analogWrite(FL_PWM, PWM);
-  analogWrite(FR_PWM, PWM);
+  // AŞAĞIYA İNME KONTROLÜ (Button 12)
+  if (b12 && !elevDownLocked) {
+    if (!elevDownActive) {
+      elevDownStart = millis();
+      elevDownActive = true;
+      Serial.println("ASC: DOWN START");
+    }
+    
+    elevDownTotal = millis() - elevDownStart;
+    if (elevDownTotal < ELEV_LIMIT) {
+      elevatorDown();
+    } else {
+      elevatorStop();
+      elevDownLocked = true;
+      elevDownActive = false;
+      Serial.println("ASC: DOWN LIMIT REACHED");
+    }
+  } else if (!b12 && elevDownActive) {
+    elevatorStop();
+    elevDownActive = false;
+  }
 }
 
-void sag(int PWM) {
-  digitalWrite(RR_IN1, HIGH); digitalWrite(RR_IN2, LOW);
-  digitalWrite(FR_IN1, LOW); digitalWrite(FR_IN2, HIGH);
-  digitalWrite(RL_IN1, LOW); digitalWrite(RL_IN2, HIGH);
-  digitalWrite(FL_IN1, HIGH); digitalWrite(FL_IN2, LOW);
+void elevatorUp() {
+  // Left motor: in1=HIGH, in2=LOW (forward)
+  // Right motor: in1=LOW, in2=HIGH (backward - opposite direction)
+  digitalWrite(EL_IN1, HIGH);
+  digitalWrite(EL_IN2, LOW);
+  digitalWrite(ER_IN1, LOW);
+  digitalWrite(ER_IN2, HIGH);
   
-  analogWrite(RR_PWM, PWM);
-  analogWrite(RL_PWM, PWM);
-  analogWrite(FL_PWM, PWM);
-  analogWrite(FR_PWM, PWM);
+  analogWrite(EL_PWM, 200);
+  analogWrite(ER_PWM, 200);
+  
 }
+
+void elevatorDown() {
+  // Left motor: in1=LOW, in2=HIGH (backward)
+  // Right motor: in1=HIGH, in2=LOW (forward - opposite direction)
+  digitalWrite(EL_IN1, LOW);
+  digitalWrite(EL_IN2, HIGH);
+  digitalWrite(ER_IN1, HIGH);
+  digitalWrite(ER_IN2, LOW);
+  
+  analogWrite(EL_PWM, 200);
+  analogWrite(ER_PWM, 200);
+}
+
+void elevatorStop() {
+  // Brake
+  digitalWrite(EL_IN1, HIGH);
+  digitalWrite(EL_IN2, HIGH);
+  digitalWrite(ER_IN1, HIGH);
+  digitalWrite(ER_IN2, HIGH);
+  
+  analogWrite(EL_PWM, 255);
+  analogWrite(ER_PWM, 255);
+  
+  delay(30);
+  
+  // Coast
+  digitalWrite(EL_IN1, LOW);
+  digitalWrite(EL_IN2, LOW);
+  digitalWrite(ER_IN1, LOW);
+  digitalWrite(ER_IN2, LOW);
+  
+  analogWrite(EL_PWM, 0);
+  analogWrite(ER_PWM, 0);
+}
+
+// --- SERVO CONTROL FUNCTIONS ---
+
+void controlServo() {
+  if (b0 && !lastB0) {
+    // Toggle on button press
+    servoOpen = !servoOpen;
+    
+    if (servoOpen) {
+      lidServo.write(90);
+      Serial.println("SERVO: OPEN (90)");
+    } else {
+      lidServo.write(0);
+      Serial.println("SERVO: CLOSE (0)");
+    }
+  }
+  lastB0 = b0;
+}
+
