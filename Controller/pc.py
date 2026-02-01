@@ -1,15 +1,22 @@
+#!/usr/bin/env python3
 import os
 import pygame
 import socket
+# Python başına EKLE:
+
 
 # Allow joystick events in background
 os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
 
-ESP32_IP = "10.224.10.188"   # ESP32 IP adresini buraya yaz 
+ESP32_IP = "172.20.10.3"
 ESP32_PORT = 4210
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Port reuse
+sock.settimeout(2.0)  # Timeout
+print(f"UDP hazır: {ESP32_IP}:{ESP32_PORT}")
+# --- Pygame ve Joystick Başlat ---
 pygame.init()
 pygame.joystick.init()
 
@@ -89,26 +96,30 @@ while running:
         # (PS5 kolunda buton 9-10 yerine Axis 10-11 olarak göründüğü için Axis okuyoruz)
         # Eğer senin PC'de bunlar farklı ID ise burayı güncellemelisin.
         
-        axis_L_Fwd = joystick.get_axis(5)   # Sol İleri
-        axis_L_Back = joystick.get_axis(0) # 
-        axis_R_Fwd = joystick.get_axis(4)   # 
-        axis_R_Back = joystick.get_axis(2) # 
-        axis_R_Back = joystick.get_axis(12)
-        axis_R_Back = joystick.get_axis(13)
+        axis_Forward = joystick.get_axis(5)   # Sol İleri
+        axis_Back = joystick.get_axis(0) # 
+        axis_turn_360 = joystick.get_axis(4)   # 
+        axis_slide_L_R = joystick.get_axis(2) # 
+        button_LID = joystick.get_button(0)  # Button 0 - Servo toggle
+        button_elevator_up = joystick.get_button(11)  # Button 11 - Elevator up
+        button_elevator_down = joystick.get_button(12)  # Button 12 - Elevator down
         
         # Paketleri Hazırla
         msgs = [
-            f"AXIS 5 {axis_L_Fwd:.3f}",
-            f"AXIS 0 {axis_L_Back:.3f}",
-            f"AXIS 4 {axis_R_Fwd:.3f}",
-            f"AXIS 2 {axis_R_Back:.3f}"
-            f"AXIS 12 {axis_R_Back:.3f}"
-            f"AXIS 13 {axis_R_Back:.3f}"
+            f"AXIS 5 {axis_Forward:.3f}",
+            f"AXIS 0 {axis_Back:.3f}",
+            f"AXIS 4 {axis_turn_360:.3f}",
+            f"AXIS 2 {axis_slide_L_R:.3f}",
+            f"BUTTON 0 {1 if button_LID else 0}",
+            f"BUTTON 11 {1 if button_elevator_up else 0}",
+            f"BUTTON 12 {1 if button_elevator_down else 0}"
         ]
         
         # Hepsini Arduino'ya fırlat
         for msg in msgs:
             sock.sendto(msg.encode(), (ESP32_IP, ESP32_PORT))
+
+    
 
     pygame.display.flip()
     clock.tick(60)
