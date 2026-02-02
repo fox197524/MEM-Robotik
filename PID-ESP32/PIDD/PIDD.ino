@@ -3,7 +3,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <HCSR04.h>
-#include <freertos.h>
+#include <Arduino_FreeRTOS.h>
 
 WiFiUDP udp;
 unsigned int localPort = 4210;

@@ -52,6 +52,10 @@ char packetBuffer[255];
 
 unsigned long lastUpdate = 0;
 
+// Global variables for parsed input
+float a0, a2, a4, a5;
+int b0, b11, b12;
+
 void setup() {
 //========PIN MODE=========
 pinMode(RR_IN1, OUTPUT);
@@ -347,7 +351,10 @@ analogWrite(FL_PWM, pwm);
 
 void d360(int pwm){
 
-if(){
+// TODO: implement turn logic later
+// For now, dummy implementation to avoid compile error
+
+if (false) {  // Placeholder condition
 
 digitalWrite(RR_IN1, LOW);
 digitalWrite(RR_IN2, HIGH);
@@ -370,7 +377,7 @@ analogWrite(FL_PWM, pwm);
 }
 
 
-else if(){
+else if (false) {  // Placeholder condition
 
 
 digitalWrite(RR_IN1, HIGH);
@@ -392,4 +399,60 @@ analogWrite(RL_PWM, pwm);
 analogWrite(FL_PWM, pwm);
 
 
+}
+
+}
+
+// --- MISSING FUNCTIONS IMPLEMENTATION ---
+
+void parseInput(String msg) {
+  // Parse messages like "AXIS 5 0.123" or "BUTTON 0 1"
+  int space1 = msg.indexOf(' ');
+  int space2 = msg.indexOf(' ', space1 + 1);
+  
+  if (space1 == -1 || space2 == -1) return;
+  
+  String type = msg.substring(0, space1);
+  String idStr = msg.substring(space1 + 1, space2);
+  String valStr = msg.substring(space2 + 1);
+  
+  int id = idStr.toInt();
+  
+  if (type == "AXIS") {
+    float val = valStr.toFloat();
+    if (id == 0) a0 = val;
+    else if (id == 2) a2 = val;
+    else if (id == 4) a4 = val;
+    else if (id == 5) a5 = val;
+  } else if (type == "BUTTON") {
+    int val = valStr.toInt();
+    if (id == 0) b0 = val;
+    else if (id == 11) b11 = val;
+    else if (id == 12) b12 = val;
+  }
+}
+
+void processMovement() {
+  // For now: axis 5 for forward, axis 4 for backward
+  if (a5 > 0.1) {  // Forward with deadzone
+    int pwm = (int)(a5 * 255);
+    ileri(pwm);
+  } else if (a4 > 0.1) {  // Backward with deadzone
+    int pwm = (int)(a4 * 255);
+    geri(pwm);
+  } else {
+    dur();
+  }
+}
+
+void stopAll() {
+  dur();
+}
+
+void controlElevator() {
+  // TODO: implement later
+}
+
+void controlServo() {
+  // TODO: implement later
 }
