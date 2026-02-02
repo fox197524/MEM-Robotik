@@ -83,7 +83,7 @@ pinMode(H_LID, OUTPUT);
 pinMode(B_LID, OUTPUT);
 
 Serial.begin(115200);
-delay(1000);
+delay(500);
 
 Serial.print("ESP-32s3 N8R2 Başlatildi");
 
@@ -182,6 +182,7 @@ digitalWrite(RR_IN2, LOW);
 analogWrite(RR_PWM, 255);
 
 }
+
 void ileri(int pwm) {
 
 digitalWrite(RR_IN1, HIGH);
@@ -219,15 +220,52 @@ digitalWrite(FL_IN1, LOW);
 digitalWrite(FL_IN2, HIGH);
 
 
-analogWrite(RR_PWM, 255);
-analogWrite(FR_PWM, 255);
-analogWrite(RL_PWM, 255);
-analogWrite(FL_PWM, 255);
+analogWrite(RR_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(FL_PWM, pwm);
 
 }
 
 void anidur(){
 
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, HIGH);
+
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, HIGH);
+
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, HIGH);
+
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, HIGH);
+
+
+analogWrite(RR_PWM, 255);
+analogWrite(FR_PWM, 255);
+analogWrite(RL_PWM, 255);
+analogWrite(FL_PWM, 255);
+
+delay(30);
+
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, LOW);
+
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, LOW);
+
+digitalWrite(RL_IN1, LOW);
+digitalWrite(RL_IN2, LOW);
+
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, LOW);
+
+
+analogWrite(RR_PWM, 0);
+analogWrite(FR_PWM, 0);
+analogWrite(RL_PWM, 0);
+analogWrite(FL_PWM, 0);
 
 }
 
@@ -246,10 +284,10 @@ digitalWrite(FL_IN1, LOW);
 digitalWrite(FL_IN2, LOW);
 
 
-analogWrite(RR_PWM, 255);
-analogWrite(FR_PWM, 255);
-analogWrite(RL_PWM, 255);
-analogWrite(FL_PWM, 255);
+analogWrite(RR_PWM, 0);
+analogWrite(FR_PWM, 0);
+analogWrite(RL_PWM, 0);
+analogWrite(FL_PWM, 0);
 
 }
 
@@ -278,10 +316,10 @@ digitalWrite(FL_IN1, HIGH);
 digitalWrite(FL_IN2, LOW);
 
 
-analogWrite(RR_PWM, 255);
-analogWrite(FR_PWM, 255);
-analogWrite(RL_PWM, 255);
-analogWrite(FL_PWM, 255);
+analogWrite(RR_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(FL_PWM, pwm);
 
 }
  
@@ -300,10 +338,10 @@ digitalWrite(FL_IN1, LOW);
 digitalWrite(FL_IN2, HIGH);
 
 
-analogWrite(RR_PWM, 255);
-analogWrite(FR_PWM, 255);
-analogWrite(RL_PWM, 255);
-analogWrite(FL_PWM, 255);
+analogWrite(RR_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(FL_PWM, pwm);
 
 } 
 
