@@ -92,18 +92,12 @@ pinMode(E_LID, OUTPUT);
 pinMode(H_LID, OUTPUT);
 pinMode(B_LID, OUTPUT);
 
-<<<<<<< Updated upstream
 Serial.begin(115200);
 delay(1000);
 
 Serial.print("ESP-32s3 N8R2 Başlatildi");
 
 //Wifi Begin
-=======
-
-
-//WİFİ BEGİN
->>>>>>> Stashed changes
 
   WiFi.begin("Fox-2", "Kyra2bin9");
   Serial.print("WiFi Baglaniyor");
