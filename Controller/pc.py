@@ -2,8 +2,6 @@
 import os
 import pygame
 import socket
-# Python başına EKLE:
-
 
 # Allow joystick events in background
 os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
