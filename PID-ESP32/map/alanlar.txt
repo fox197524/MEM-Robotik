@@ -1,5 +1,0 @@
-pembe - topların geldiği yer kaynak
-kırmızı ve mavi - takımların başlangıç noktası
-mor - sarnıç
-koyu yeşil - geçilmez yer
-açık yeşil - barfiks çubuğu
