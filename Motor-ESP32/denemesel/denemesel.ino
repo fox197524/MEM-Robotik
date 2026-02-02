@@ -42,9 +42,9 @@ const int ER_IN2 = 42;
 
 // --- SERVO LID ---
 
-const int E_LID = 14;
-const int B_LID = ;
-const int H_LID = ;
+const int E_LID = 41;
+const int B_LID = 14;
+const int H_LID = 40;
 
 WiFiUDP udp;
 unsigned int localPort = 4210;
@@ -53,41 +53,57 @@ char packetBuffer[255];
 unsigned long lastUpdate = 0;
 
 void setup() {
+<<<<<<< Updated upstream
+=======
+  // put your setup code here, to run once:
+
+  Serial.begin(115200);
+delay(500);
+Serial.print("ESP-32s3 N8R2 Başlatildi");
+
+
+>>>>>>> Stashed changes
 //========PIN MODE=========
 pinMode(RR_IN1, OUTPUT);
 pinMode(RR_IN2, OUTPUT);
 pinMode(RR_PWM, OUTPUT);
 
 pinMode(RL_IN1, OUTPUT);
-pinMode(RL_IN1, OUTPUT);
-pinMode(RL_IN1, OUTPUT);
+pinMode(RL_IN2, OUTPUT);
+pinMode(RL_PWM, OUTPUT);
 
 pinMode(FR_IN1, OUTPUT);
-pinMode(FR_IN1, OUTPUT);
-pinMode(FR_IN1, OUTPUT);
+pinMode(FR_IN2, OUTPUT);
+pinMode(FR_PWM, OUTPUT);
 
 pinMode(FL_IN1, OUTPUT);
-pinMode(FL_IN1, OUTPUT);
-pinMode(FL_IN1, OUTPUT);
+pinMode(FL_IN2, OUTPUT);
+pinMode(FL_PWM, OUTPUT);
 
 pinMode(EL_IN1, OUTPUT);
-pinMode(EL_IN1, OUTPUT);
-pinMode(EL_IN1, OUTPUT);
+pinMode(EL_IN2, OUTPUT);
+pinMode(EL_PWM, OUTPUT);
 
 pinMode(ER_IN1, OUTPUT);
-pinMode(ER_IN1, OUTPUT);
-pinMode(ER_IN1, OUTPUT);
+pinMode(ER_IN2, OUTPUT);
+pinMode(ER_PWM, OUTPUT);
 
 pinMode(E_LID, OUTPUT);
 pinMode(H_LID, OUTPUT);
 pinMode(B_LID, OUTPUT);
 
+<<<<<<< Updated upstream
 Serial.begin(115200);
 delay(1000);
 
 Serial.print("ESP-32s3 N8R2 Başlatildi");
 
 //Wifi Begin
+=======
+
+
+//WİFİ BEGİN
+>>>>>>> Stashed changes
 
   WiFi.begin("Fox-2", "Kyra2bin9");
   Serial.print("WiFi Baglaniyor");
@@ -134,37 +150,95 @@ void loop() {
     controlElevator();  // Still handle elevator timers
     controlServo();     // Still handle servo
   }
-}
 
+
+
+
+
+
+
+
+//LOOP PARANTEZİ!!!
+}
 
 
 
 void sagon(){
 
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, LOW);
+
+analogWrite(FR_PWM, 255);
 
 }
 
 void solon(){
 
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, LOW);
+
+analogWrite(FL_PWM, 255);
 
 }
 
 void solarka(){
 
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, LOW);
+
+analogWrite(RL_PWM, 255);
 
 }
 
 void sagarka(){
 
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
+
+analogWrite(RR_PWM, 255);
 
 }
-void ileri() {
+void ileri(int pwm) {
 
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
+
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, LOW);
+
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, LOW);
+
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, LOW);
+
+
+analogWrite(RR_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(FL_PWM, pwm);
 
 }
 
-void geri(){
+void geri(int pwm){
 
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, HIGH);
+
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, HIGH);
+
+digitalWrite(RL_IN1, LOW);
+digitalWrite(RL_IN2, HIGH);
+
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, HIGH);
+
+
+analogWrite(RR_PWM, 255);
+analogWrite(FR_PWM, 255);
+analogWrite(RL_PWM, 255);
+analogWrite(FL_PWM, 255);
 
 }
 
@@ -175,6 +249,23 @@ void anidur(){
 
 void dur(){
 
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, LOW);
+
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, LOW);
+
+digitalWrite(RL_IN1, LOW);
+digitalWrite(RL_IN2, LOW);
+
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, LOW);
+
+
+analogWrite(RR_PWM, 255);
+analogWrite(FR_PWM, 255);
+analogWrite(RL_PWM, 255);
+analogWrite(FL_PWM, 255);
 
 }
 
@@ -188,23 +279,95 @@ void easagi() {
   
 }
 
-void solakay(){
+void solakay(int pwm){
 
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, HIGH);
+
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, LOW);
+
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, LOW);
+
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, LOW);
+
+
+analogWrite(RR_PWM, 255);
+analogWrite(FR_PWM, 255);
+analogWrite(RL_PWM, 255);
+analogWrite(FL_PWM, 255);
 
 }
  
-void sagakay(){
+void sagakay(int pwm){
 
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
+
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, HIGH);
+
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, LOW);
+
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, HIGH);
+
+
+analogWrite(RR_PWM, 255);
+analogWrite(FR_PWM, 255);
+analogWrite(RL_PWM, 255);
+analogWrite(FL_PWM, 255);
 
 } 
 
-void sag360(){
+void d360(int pwm){
 
+if(){
+
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, HIGH);
+
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, HIGH);
+
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, LOW);
+
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, LOW);
+
+
+analogWrite(RR_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(FL_PWM, pwm);
 
 }
 
-void sol360(){
 
+else if(){
+
+
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
+
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, LOW);
+
+digitalWrite(RL_IN1, LOW);
+digitalWrite(RL_IN2, HIGH);
+
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, HIGH);
+
+
+analogWrite(RR_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(FL_PWM, pwm);
 
 
 }
