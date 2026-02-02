@@ -4,25 +4,25 @@
 #include <ESP32Servo.h>
 
 // --- MOTOR PIN DEFINITIONS ---
-//Rear Left Pıns
+//Rear Left Pins
 
 const int RL_PWM = 7;   
 const int RL_IN1 = 8;   
 const int RL_IN2 = 9;  
 
-//Rear Right Pıns
+//Rear Right Pins
 
 const int RR_PWM = 12;
 const int RR_IN1 = 11;
 const int RR_IN2 = 13;
 
-//Front Left Pıns
+//Front Left Pins
 
 const int FL_PWM = 15;
 const int FL_IN1 = 16;
 const int FL_IN2 = 17;
 
-//Front Right Pıns
+//Front Right Pins
 
 const int FR_PWM = 4;
 const int FR_IN1 = 5;
@@ -53,7 +53,6 @@ char packetBuffer[255];
 unsigned long lastUpdate = 0;
 
 void setup() {
-  // put your setup code here, to run once:
 //========PIN MODE=========
 pinMode(RR_IN1, OUTPUT);
 pinMode(RR_IN2, OUTPUT);
@@ -83,14 +82,12 @@ pinMode(E_LID, OUTPUT);
 pinMode(H_LID, OUTPUT);
 pinMode(B_LID, OUTPUT);
 
-
-
-
 Serial.begin(115200);
 delay(1000);
+
 Serial.print("ESP-32s3 N8R2 Başlatildi");
 
-//WİFİ BEGİN
+//Wifi Begin
 
   WiFi.begin("Fox-2", "Kyra2bin9");
   Serial.print("WiFi Baglaniyor");
