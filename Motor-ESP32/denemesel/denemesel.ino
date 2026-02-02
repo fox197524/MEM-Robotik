@@ -53,16 +53,6 @@ char packetBuffer[255];
 unsigned long lastUpdate = 0;
 
 void setup() {
-<<<<<<< Updated upstream
-=======
-  // put your setup code here, to run once:
-
-  Serial.begin(115200);
-delay(500);
-Serial.print("ESP-32s3 N8R2 Başlatildi");
-
-
->>>>>>> Stashed changes
 //========PIN MODE=========
 pinMode(RR_IN1, OUTPUT);
 pinMode(RR_IN2, OUTPUT);
