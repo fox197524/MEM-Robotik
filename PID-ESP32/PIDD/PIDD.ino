@@ -18,6 +18,11 @@ unsigned int localPort = 4210;
 char packetBuffer[255];
 unsigned long lastUpdate = 0;
 
+#define WIFI_SSID "Fox-2"
+#define WIFI_PSWD "Kyra2bin9"
+
+
+
 //======PID PINOUT=====
 
 // ENCODERS
@@ -54,35 +59,39 @@ const int D_REAR = 18;
 const int MPU_SDA = 41;
 const int MPU_SCL = 42;
 
+Wire.begin(MPU_SDA, MPU_SCL);
+
 void setup() {
     // PIN MODE  
-    pinMode(EN_RL1, OUTPUT);  
-    pinMode(EN_RL2, OUTPUT);
-    pinMode(EN_RR1, OUTPUT);
-    pinMode(EN_RR2, OUTPUT);
-    pinMode(EN_FL1, OUTPUT);
-    pinMode(EN_FL2, OUTPUT);
-    pinMode(EN_FR1, OUTPUT);
-    pinMode(EN_FR2, OUTPUT);
-    pinMode(EN_EL1, OUTPUT);
-    pinMode(EN_EL2, OUTPUT);
-    pinMode(EN_ER1, OUTPUT);
-    pinMode(EN_ER2, OUTPUT);
-    pinMode(D_TRIG, OUTPUT);
-    pinMode(D_FRNT, INPUT);
+    pinMode(EN_RL1, INPUT);  
+    pinMode(EN_RL2, INPUT);
+    pinMode(EN_RR1, INPUT);
+    pinMode(EN_RR2, INPUT);
+    pinMode(EN_FL1, INPUT);
+    pinMode(EN_FL2, INPUT);
+    pinMode(EN_FR1, INPUT);
+    pinMode(EN_FR2, INPUT);
+    pinMode(EN_EL1, INPUT);
+    pinMode(EN_EL2, INPUT);
+    pinMode(EN_ER1, INPUT);
+    pinMode(EN_ER2, INPUT);
+
+    pinMode(D_TRIG, OUTPUT); // Trig pin mode OUTPUT
+    pinMode(D_FRNT, INPUT); // Echo pin mode INPUT
     pinMode(D_RGHT, INPUT);
     pinMode(D_LEFT, INPUT);
     pinMode(D_REAR, INPUT);
-    pinMode(MPU_SDA, OUTPUT);
-    pinMode(MPU_SCL, OUTPUT);
+    
+    //pinMode(MPU_SDA, OUTPUT); NO PINMODE needed for MPU6050 I2C library
+    //pinMode(MPU_SCL, OUTPUT);
 
     Serial.begin(115200);
     delay(1000);
-    Serial.print("ESP32-N16R8 Başlatıldı");
+    Serial.print("ESP32-N16R8 Başlatıldı.");
 
     //Wifi Begin
     
-    WiFi.begin("Fox-2", "Kyra2bin9");
+    WiFi.begin(WIFI_SSID, WIFI_PSWD);
     Serial.print("WiFi Bağlanıyor");
     int timeout = 0;
     while (WiFi.status() != WL_CONNECTED && timeout < 20) {
@@ -94,7 +103,7 @@ void setup() {
     Serial.println("\nWiFi OK!");
     Serial.print("IP: "); Serial.println(WiFi.localIP());
     udp.begin(localPort);
-    Serial.println("UDP Basladi");
+    Serial.println("UDP Başladı");
 }
 
 void loop() {
