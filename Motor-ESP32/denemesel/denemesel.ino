@@ -58,7 +58,11 @@ unsigned long lastUpdate = 0;
 
 // Global variables for parsed input
 float a0, a2, a4, a5;
-int b0, b11, b12;
+int b0, b11, b12, b13, b6;
+int previous_b6 = 0;
+bool e_lid_open = false;
+
+Servo e_lid_servo;
 
 void setup() {
 //========PIN MODE=========
@@ -89,6 +93,8 @@ pinMode(ER_PWM, OUTPUT);
 pinMode(E_LID, OUTPUT);
 pinMode(H_LID, OUTPUT);
 pinMode(B_LID, OUTPUT);
+
+e_lid_servo.attach(E_LID);
 
 Serial.begin(115200);
 delay(500);
@@ -353,6 +359,86 @@ void sagakay(int pwm){
 
 } 
 
+void spinLeft(int pwm) {
+    // Spin left (counter-clockwise)
+    digitalWrite(RR_IN1, LOW);
+    digitalWrite(RR_IN2, HIGH);
+    
+    digitalWrite(FR_IN1, LOW);
+    digitalWrite(FR_IN2, HIGH);
+    
+    digitalWrite(RL_IN1, HIGH);
+    digitalWrite(RL_IN2, LOW);
+    
+    digitalWrite(FL_IN1, HIGH);
+    digitalWrite(FL_IN2, LOW);
+    
+    analogWrite(RR_PWM, pwm);
+    analogWrite(FR_PWM, pwm);
+    analogWrite(RL_PWM, pwm);
+    analogWrite(FL_PWM, pwm);
+}
+
+void spinRight(int pwm) {
+    // Spin right (clockwise)
+    digitalWrite(RR_IN1, HIGH);
+    digitalWrite(RR_IN2, LOW);
+    
+    digitalWrite(FR_IN1, HIGH);
+    digitalWrite(FR_IN2, LOW);
+    
+    digitalWrite(RL_IN1, LOW);
+    digitalWrite(RL_IN2, HIGH);
+    
+    digitalWrite(FL_IN1, LOW);
+    digitalWrite(FL_IN2, HIGH);
+    
+    analogWrite(RR_PWM, pwm);
+    analogWrite(FR_PWM, pwm);
+    analogWrite(RL_PWM, pwm);
+    analogWrite(FL_PWM, pwm);
+}
+
+void strafeLeft(int pwm) {
+    // Strafe left (move sideways left)
+    digitalWrite(FL_IN1, LOW);
+    digitalWrite(FL_IN2, HIGH);  // FL backward
+    
+    digitalWrite(FR_IN1, HIGH);
+    digitalWrite(FR_IN2, LOW);  // FR forward
+    
+    digitalWrite(RL_IN1, HIGH);
+    digitalWrite(RL_IN2, LOW);  // RL forward
+    
+    digitalWrite(RR_IN1, LOW);
+    digitalWrite(RR_IN2, HIGH);  // RR backward
+    
+    analogWrite(RR_PWM, pwm);
+    analogWrite(FR_PWM, pwm);
+    analogWrite(RL_PWM, pwm);
+    analogWrite(FL_PWM, pwm);
+}
+
+void strafeRight(int pwm) {
+    // Strafe right (move sideways right)
+    digitalWrite(FL_IN1, HIGH);
+    digitalWrite(FL_IN2, LOW);  // FL forward
+    
+    digitalWrite(FR_IN1, LOW);
+    digitalWrite(FR_IN2, HIGH);  // FR backward
+    
+    digitalWrite(RL_IN1, LOW);
+    digitalWrite(RL_IN2, HIGH);  // RL backward
+    
+    digitalWrite(RR_IN1, HIGH);
+    digitalWrite(RR_IN2, LOW);  // RR forward
+    
+    analogWrite(RR_PWM, pwm);
+    analogWrite(FR_PWM, pwm);
+    analogWrite(RL_PWM, pwm);
+    analogWrite(FL_PWM, pwm);
+}
+
 void d360(int pwm){
     // TODO: implement turn logic later
     // For now, dummy implementation to avoid compile error
@@ -436,13 +522,26 @@ void parseInput(String msg) {
 }
 
 void processMovement() {
-  // For now: axis 5 for forward, axis 4 for backward
-  if (a5 > 0.1) {  // Forward with deadzone
+  // Priority: forward/back > turn > slide
+  
+  if (a5 > 0.1) {  // Forward
     int pwm = (int)(a5 * 255);
     ileri(pwm);
-  } else if (a4 > 0.1) {  // Backward with deadzone
+  } else if (a4 > 0.1) {  // Backward
     int pwm = (int)(a4 * 255);
     geri(pwm);
+  } else if (a0 < -0.1) {  // Turn left (axis 0 negative)
+    int pwm = (int)(abs(a0) * 255);
+    spinLeft(pwm);
+  } else if (a0 > 0.1) {  // Turn right (axis 0 positive)
+    int pwm = (int)(a0 * 255);
+    spinRight(pwm);
+  } else if (a2 < -0.1) {  // Slide left (axis 2 negative)
+    int pwm = (int)(abs(a2) * 255);
+    strafeLeft(pwm);
+  } else if (a2 > 0.1) {  // Slide right (axis 2 positive)
+    int pwm = (int)(a2 * 255);
+    strafeRight(pwm);
   } else {
     dur();
   }

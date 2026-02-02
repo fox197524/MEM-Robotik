@@ -1,9 +1,12 @@
 //===========THE BIG PID SYSTEM==============
 #include <Arduino.h>
+#include <MPU6050.h>
+#include <Wire.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
-#include <HCSR04.h>
-#include <Arduino_FreeRTOS.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
 
 // ESP32-N16R8 PID CONTROLLER CODE
 
