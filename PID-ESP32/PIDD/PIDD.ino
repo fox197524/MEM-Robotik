@@ -2,7 +2,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
-#include <ESP32Servo.h>
 
 //======PID PINOUT=====
 
@@ -19,11 +18,11 @@ const int EN_FL2 = 7;
 const int EN_FR1 = 8;
 const int EN_FR2 = 9;
 
-const int EN_FR1 = 10;
-const int EN_FR2 = 11;
+const int EN_EL1 = 10;
+const int EN_EL2 = 11;
 
-const int EN_FR1 = 12;
-const int EN_FR2 = 13;
+const int EN_ER1 = 12;
+const int EN_ER2 = 13;
 
 // DISTANCE SENSORS HC-SR04
 
@@ -40,7 +39,25 @@ const int MPU_SCL = 42
 
 
 void setup() {
-  // put your setup code here, to run once:
+// PIN MODE  
+  pinMode(EN_RL1, OUTPUT);  
+  pinMode(EN_RL2, OUTPUT);
+  pinMode(EN_RR1, OUTPUT);
+  pinMode(EN_RR2, OUTPUT);
+  pinMode(EN_FL1, OUTPUT);
+  pinMode(EN_FL2, OUTPUT);
+  pinMode(EN_FR1, OUTPUT);
+  pinMode(EN_FR2, OUTPUT);
+  pinMode(EN_EL1, OUTPUT);
+  pinMode(EN_EL2, OUTPUT);
+  pinMode(EN_ER1, OUTPUT);
+  pinMode(EN_ER2, OUTPUT);
+  pinMode(D_FRONT, OUTPUT);
+  pinMode(D_RIGHT, OUTPUT);
+  pinMode(D_LEFT, OUTPUT);
+  pinMode(D_REAR, OUTPUT);
+  pinMode(MPU_SDA, OUTPUT);
+  pinMode(MPU_SCL, OUTPUT);
 
 
 
