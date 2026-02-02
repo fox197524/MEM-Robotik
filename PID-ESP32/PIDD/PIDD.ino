@@ -47,8 +47,8 @@ const int D_REAR = 18;
 
 // ACCELERATOR MPU6050 SENSOR
 
-const int MPU_SDA = 41
-const int MPU_SCL = 42
+const int MPU_SDA = 41;
+const int MPU_SCL = 42;
 
 void setup() {
     // PIN MODE  
