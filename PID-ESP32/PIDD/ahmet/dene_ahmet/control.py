@@ -177,7 +177,7 @@ while running:
             if abs(value) < DEADZONE:
                 value = 0
             msgs.append(f"AXIS {axis_id} {value:.3f}")
-        
+
         # Send important button states
         for btn_id in IMPORTANT_BUTTONS:
             state = button_states[btn_id]
