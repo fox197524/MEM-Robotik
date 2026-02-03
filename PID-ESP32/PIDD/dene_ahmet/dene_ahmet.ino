@@ -83,7 +83,6 @@ void setup() {
   udp.begin(localPort);
 }
 
-
 void loop(){
   digitalWrite(RL_IN1, HIGH);
   digitalWrite(RL_IN2, LOW);
@@ -100,6 +99,4 @@ void loop(){
   digitalWrite(FR_IN1, HIGH);
   digitalWrite(FR_IN2, LOW);
   analogWrite(FR_PWM, 255);
-
-
 }

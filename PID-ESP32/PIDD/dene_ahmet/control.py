@@ -134,26 +134,46 @@ while running:
         screen.blit(text, (RIGHT_COLUMN_X + 30, button_y))
 
     # ==========================================
-    # 2. NONSTOP DATA STREAM (40fps)
+    # 2. NONSTOP DATA STREAM (40fps) - MODIFIED FOR R2 TRIGGER
     # ==========================================
     if current_time - last_send_time > SEND_INTERVAL:
         last_send_time = current_time
         msgs = []
         
-        # ALWAYS SEND ALL AXES (smooth forward fix)
+        # R2 AXIS 5 CHECK - Send drive forward commands when R2 is pressed
+        r2_value = joystick.get_axis(5)
+        if abs(r2_value) > DEADZONE:
+            # Send ESP32 loop() motor commands when R2 is triggered
+            msgs.extend([
+                "DRIVE_FORWARD",
+                # Exact motor drive sequence from ESP32 loop()
+                "RL_IN1 HIGH;RL_IN2 LOW;RL_PWM 255",
+                "RR_IN1 LOW;RR_IN2 HIGH;RR_PWM 255", 
+                "FL_IN1 HIGH;FL_IN2 LOW;FL_PWM 255",
+                "FR_IN1 HIGH;FR_IN2 LOW;FR_PWM 255"
+            ])
+        else:
+            # Send zero commands when R2 not pressed (stop motors)
+            msgs.extend([
+                "MOTORS_STOP",
+                "RL_PWM 0",
+                "RR_PWM 0",
+                "FL_PWM 0", 
+                "FR_PWM 0"
+            ])
+        
+        # Send other axes/buttons as normal
         axes_to_send = [
             (0, joystick.get_axis(0)),
             (2, joystick.get_axis(2)),   
-            (4, joystick.get_axis(4)),   
-            (5, joystick.get_axis(5))    
+            (4, joystick.get_axis(4))    
         ]
         
         for axis_id, value in axes_to_send:
             if abs(value) < DEADZONE:
-                value = 0.000  # CLEAN ZERO
+                value = 0.000
             msgs.append(f"AXIS {axis_id} {value:.3f}")
 
-        # ALWAYS SEND BUTTONS
         for btn_id in IMPORTANT_BUTTONS:
             state = button_states[btn_id]
             msgs.append(f"BUTTON {btn_id} {state}")
