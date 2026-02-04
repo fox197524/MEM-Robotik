@@ -6,6 +6,10 @@ WiFiUDP udp;
 unsigned int localPort = 4210;
 char packetBuffer[255];
 
+// Track previous values for change detection
+float prev_axis5 = 999, prev_axis2 = 999, prev_axis0 = 999;
+int prev_btn0 = -1, prev_btn11 = -1, prev_btn12 = -1;
+
 #define WIFI_SSID "Fox-17"
 #define WIFI_PSWD "Kyra2bin9"
 
@@ -32,6 +36,21 @@ void setMotor(int in1, int in2, int pwm, int dir, int speed) {
   analogWrite(pwm, abs(speed));
 }
 
+bool hasChanged(float prev, float current, float threshold = 0.05) {
+  return abs(prev - current) > threshold;
+}
+
+bool hasChanged(int prev, int current) {
+  return prev != current;
+}
+
+void stopWheels() {
+  setMotor(RL_IN1, RL_IN2, RL_PWM, 0, 0);
+  setMotor(RR_IN1, RR_IN2, RR_PWM, 0, 0);
+  setMotor(FL_IN1, FL_IN2, FL_PWM, 0, 0);
+  setMotor(FR_IN1, FR_IN2, FR_PWM, 0, 0);
+}
+
 void setup() {
   Serial.begin(115200);
   
@@ -42,6 +61,10 @@ void setup() {
   
   pinMode(EL_IN1, OUTPUT); pinMode(EL_IN2, OUTPUT); pinMode(EL_PWM, OUTPUT);
   pinMode(ER_IN1, OUTPUT); pinMode(ER_IN2, OUTPUT); pinMode(ER_PWM, OUTPUT);
+  pinMode(E_LID, OUTPUT);
+  digitalWrite(E_LID, LOW);
+  
+  stopWheels();
   
   WiFi.begin(WIFI_SSID, WIFI_PSWD);
   while (WiFi.status() != WL_CONNECTED) {
@@ -58,27 +81,63 @@ void loop() {
     int len = udp.read(packetBuffer, 255);
     if (len > 0) packetBuffer[len] = 0;
     
-    float fwd = atof(strtok(packetBuffer, ","));
-    float strafe = atof(strtok(NULL, ","));
-    float turn = atof(strtok(NULL, ","));
-    float rot = atof(strtok(NULL, ","));
+    String message = String(packetBuffer);
     
-    if (abs(fwd) < 0.1) fwd = 0;
-    if (abs(strafe) < 0.1) strafe = 0;
-    if (abs(turn) < 0.1) turn = 0;
-    if (abs(rot) < 0.1) rot = 0;
-    
-    int rl_speed = constrain((fwd - strafe - turn + rot) * 255, -255, 255);
-    int rr_speed = constrain((fwd + strafe + turn - rot) * 255, -255, 255);
-    int fl_speed = constrain((fwd + strafe - turn - rot) * 255, -255, 255);
-    int fr_speed = constrain((fwd - strafe + turn + rot) * 255, -255, 255);
-    
-    setMotor(RL_IN1, RL_IN2, RL_PWM, rl_speed >= 0 ? 1 : -1, abs(rl_speed));
-    setMotor(RR_IN1, RR_IN2, RR_PWM, rr_speed >= 0 ? 1 : -1, abs(rr_speed));
-    setMotor(FL_IN1, FL_IN2, FL_PWM, fl_speed >= 0 ? 1 : -1, abs(fl_speed));
-    setMotor(FR_IN1, FR_IN2, FR_PWM, fr_speed >= 0 ? 1 : -1, abs(fr_speed));
-    
-    Serial.printf("F:%.2f S:%.2f T:%.2f R:%.2f | RL:%d RR:%d FL:%d FR:%d\n", 
-                  fwd, strafe, turn, rot, rl_speed, rr_speed, fl_speed, fr_speed);
+    if (message.startsWith("AXIS 5 ")) {  // FORWARD
+      float axis5 = message.substring(7).toFloat();
+      if (hasChanged(prev_axis5, axis5)) {
+        prev_axis5 = axis5;
+        Serial.printf("Axis5(FORWARD): %.3f\n", axis5);
+        int fwd_speed = constrain(-axis5 * 255, -255, 255);
+        if (abs(fwd_speed) > 20) {
+          setMotor(RL_IN1, RL_IN2, RL_PWM, 1, abs(fwd_speed));
+          setMotor(RR_IN1, RR_IN2, RR_PWM, 1, abs(fwd_speed));
+          setMotor(FL_IN1, FL_IN2, FL_PWM, 1, abs(fwd_speed));
+          setMotor(FR_IN1, FR_IN2, FR_PWM, 1, abs(fwd_speed));
+        } else {
+          stopWheels();
+        }
+      }
+      
+    } else if (message.startsWith("AXIS 2 ")) {  // BACKWARD
+      float axis2 = message.substring(7).toFloat();
+      if (hasChanged(prev_axis2, axis2)) {
+        prev_axis2 = axis2;
+        Serial.printf("Axis2(BACKWARD): %.3f\n", axis2);
+        int back_speed = constrain(-axis2 * 255, -255, 255);
+        if (abs(back_speed) > 20) {
+          setMotor(RL_IN1, RL_IN2, RL_PWM, -1, abs(back_speed));
+          setMotor(RR_IN1, RR_IN2, RR_PWM, -1, abs(back_speed));
+          setMotor(FL_IN1, FL_IN2, FL_PWM, -1, abs(back_speed));
+          setMotor(FR_IN1, FR_IN2, FR_PWM, -1, abs(back_speed));
+        } else {
+          stopWheels();
+        }
+      }
+      
+    } else if (message.startsWith("AXIS 0 ")) {  // RIGHT/LEFT STRAFE
+      float axis0 = message.substring(7).toFloat();
+      if (hasChanged(prev_axis0, axis0)) {
+        prev_axis0 = axis0;
+        Serial.printf("Axis0(STRAFE): %.3f\n", axis0);
+        int strafe_speed = constrain(abs(axis0) * 255 * 0.8, 0, 255);
+        if (strafe_speed > 20) {
+          if (axis0 > 0) {  // RIGHT
+            setMotor(FR_IN1, FR_IN2, FR_PWM, 1, strafe_speed);
+            setMotor(RR_IN1, RR_IN2, RR_PWM, 1, strafe_speed);
+            setMotor(FL_IN1, FL_IN2, FL_PWM, -1, strafe_speed);
+            setMotor(RL_IN1, RL_IN2, RL_PWM, -1, strafe_speed);
+          } else {  // LEFT
+            setMotor(FR_IN1, FR_IN2, FR_PWM, -1, strafe_speed);
+            setMotor(RR_IN1, RR_IN2, RR_PWM, -1, strafe_speed);
+            setMotor(FL_IN1, FL_IN2, FL_PWM, 1, strafe_speed);
+            setMotor(RL_IN1, RL_IN2, RL_PWM, 1, strafe_speed);
+          }
+        } else {
+          stopWheels();
+        }
+      }
+       
+  }
   }
 }
