@@ -15,7 +15,9 @@ const unsigned long TIMEOUT = 500;
 float axis2 = -1.0; 
 float axis5 = -1.0;
 float axis3 = 0.0;
+float axis4 = 0.0;
 
+int speed = 255;
 
 const int RL_PWM = 7, RL_IN1 = 8, RL_IN2 = 9;
 const int RR_PWM = 12, RR_IN1 = 13, RR_IN2 = 11;
@@ -63,7 +65,6 @@ void setup() {
 
 void loop() {
   unsigned long now = millis();
-  
   int packetSize = udp.parsePacket();
   if (packetSize) {
     int len = udp.read(packetBuffer, 255);
@@ -80,10 +81,11 @@ void loop() {
     } else if (message.startsWith("AXIS 3 ")){
       axis3 = message.substring(7).toFloat();
       lastAxisPacket = now;
+    } else if (message.startsWith("AXIS 0 ")){
+      axis0 = message.substring(7).toFloat();
+      lastAxisPacket = now;
     }
   }
-
-  // --- IMPROVED LOGIC ENGINE ---
   
   // --- FINAL LOGIC ENGINE ---
   
@@ -96,7 +98,6 @@ void loop() {
   // 2. Drive Forward (Trigger 5)
   else if (axis5 > -0.900) {
       Serial.println("FORWARD");
-      int speed = 255;
       setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
       setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
       setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
@@ -106,7 +107,6 @@ void loop() {
   // 3. Drive Reverse (Trigger 2)
   else if (axis2 > -0.900) {
       Serial.println("REVERSE");
-      int speed = 255; 
       setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
       setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);
       setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
@@ -115,8 +115,7 @@ void loop() {
   
   // 4. Spin Left (Stick pushed far left)
   else if (axis3 < -0.150) { 
-    Serial.println("SPIN LEFT");
-    int speed = 200; 
+    Serial.println("360 LEFT");
     setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed); // Left side backwards
     setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
     setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);  // Right side forwards
@@ -125,13 +124,21 @@ void loop() {
   
   // 5. Spin Right (Stick pushed far right)
   else if (axis3 > 0.150) {
-    Serial.println("SPIN RIGHT");
-    int speed = 200;
+    Serial.println("360 RIGHT");
     setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);  // Left side forwards
     setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
     setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed); // Right side backwards
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
   }
+
+  else if (axis0 < -0.020){
+    Serial.println("MOVE RIGHT");
+    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);  
+    setMotor(FL_IN1, FL_IN2, FL_PWM, +1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, +1, speed); 
+    setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
+  }
+
   
   // 6. Idle / Center Position
   else {

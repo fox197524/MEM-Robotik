@@ -35,7 +35,6 @@ def main():
     
     while running:
         pygame.event.pump()
-    
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -44,10 +43,10 @@ def main():
         
         if current_time - last_send_time > interval:
             last_send_time = current_time
-    
-            axis_Forward = joystick.get_axis(5)   # Sol İleri
+
+            axis_Forward = joystick.get_axis(5)   # İleri
             axis_Back = joystick.get_axis(2) # 
-            axis_turn_360 = joystick.get_axis(4)   # 
+            axis_turn_360 = joystick.get_axis(0)   # 
             axis_slide_L_R = joystick.get_axis(3) # 
             button_LID = joystick.get_button(0)  # Button 0 - Servo toggle
             button_elevator_up = joystick.get_button(11)  # Button 11 - Elevator up
@@ -55,10 +54,11 @@ def main():
        
     
             msgs = [
-                f"AXIS 5 {axis_Forward:.3f}",
+                f"AXIS 0 {axis_turn_360:.3f}",
                 f"AXIS 2 {axis_Back:.3f}",
-                f"AXIS 4 {axis_turn_360:.3f}",
                 f"AXIS 3 {axis_slide_L_R:.3f}",
+                f"AXIS 4 {axis_turn_360:.3f}",
+                f"AXIS 5 {axis_Forward:.3f}",
                 f"BUTTON 0 {1 if button_LID else 0}",
                 f"BUTTON 11 {1 if button_elevator_up else 0}",
                 f"BUTTON 12 {1 if button_elevator_down else 0}"
@@ -78,6 +78,8 @@ def main():
         clock.tick(60)
 
 if __name__ == "__main__":
-    main()
-    pygame.quit()
-    sock.close()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n Exiting.")
+        pygame.quit()
