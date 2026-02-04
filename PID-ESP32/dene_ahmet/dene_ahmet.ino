@@ -12,6 +12,7 @@ const unsigned long TIMEOUT = 500;
 #define WIFI_PSWD "Kyra2bin9"
 
 // Global Axis States
+float axis0 = 0.0;
 float axis2 = -1.0; 
 float axis5 = -1.0;
 float axis3 = 0.0;
@@ -25,17 +26,34 @@ const int FL_PWM = 15, FL_IN1 = 16, FL_IN2 = 17;
 const int FR_PWM = 4, FR_IN1 = 5, FR_IN2 = 6;
 
 void setMotor(int in1, int in2, int pwm, int dir, int speed) {
-  if (dir > 0) {
-    digitalWrite(in1, HIGH);
-    digitalWrite(in2, LOW);
-  } else if (dir < 0) {
+  if (dir == -1) {
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
-  } else {
+    analogWrite(pwm, abs(speed));
+
+  } else if (dir == 0){
     digitalWrite(in1, LOW);
     digitalWrite(in2, LOW);
+    analogWrite(pwm, abs(speed));
+
+  } else if (dir == 1) {
+    digitalWrite(in1, HIGH);
+    digitalWrite(in2, LOW);
+    analogWrite(pwm, abs(speed));
+  } else if (dir == 2){
+    digitalWrite(in1, HIGH); // FOR SUDDENLY BRAKING
+    digitalWrite(in2, HIGH); 
+    digitalWrite(pwm, LOW); // pwm low for sudden brake
   }
-  analogWrite(pwm, abs(speed));
+}
+
+
+void suddenStop() {
+
+  setMotor(RL_IN1, RL_IN2, RL_PWM, 2, 0);
+  setMotor(RR_IN1, RR_IN2, RR_PWM, 2, 0);
+  setMotor(FL_IN1, FL_IN2, FL_PWM, 2, 0);
+  setMotor(FR_IN1, FR_IN2, FR_PWM, 2, 0);
 }
 
 void stopAll() {
@@ -131,17 +149,24 @@ void loop() {
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
   }
 
-  else if (axis0 < -0.020){
+  else if (axis0 > -0.010){
     Serial.println("MOVE RIGHT");
     setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);  
-    setMotor(FL_IN1, FL_IN2, FL_PWM, +1, speed);
-    setMotor(RR_IN1, RR_IN2, RR_PWM, +1, speed); 
+    setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed); 
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
   }
 
+  else if (axis0 < -0.030){
+    Serial.println("MOVE LEFT");
+    setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);  
+    setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed); 
+    setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
+  } 
   
-  // 6. Idle / Center Position
   else {
+    Serial.println("STOPPED");
     stopAll();
   }
 }
