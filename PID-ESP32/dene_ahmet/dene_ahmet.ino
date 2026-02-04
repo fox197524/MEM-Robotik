@@ -91,7 +91,7 @@ void loop() {
     String message = String(packetBuffer);
     
     if (message.startsWith("AXIS 5 ")) {
-      axis5 = message.substring(7).toFloat();
+      axis5 = message.substring(7).toFloat(); // we should direct to the getSpeed() function here to calculate the speed with the axises
       lastAxisPacket = now;
     } else if (message.startsWith("AXIS 2 ")) {
       axis2 = message.substring(7).toFloat();
@@ -110,7 +110,7 @@ void loop() {
   // 1. Safety Timeout (If no signal for 500ms, stop)
   if (now - lastAxisPacket > TIMEOUT) {
     stopAll();
-    // Optional: Serial.println("TIMEOUT - CONNECTION LOST");
+    Serial.println("TIMEOUT - CONNECTION LOST");
   }
   
   // 2. Drive Forward (Trigger 5)
