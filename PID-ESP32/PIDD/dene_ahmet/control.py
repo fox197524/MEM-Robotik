@@ -2,13 +2,26 @@ import os
 import pygame
 import socket
 import time
+import sys
 
 os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
+
+clock = pygame.time.Clock()
+running = True
+
+event_handlers = [
+    pygame.JOYBUTTONDOWN,
+    pygame.JOYBUTTONUP,
+    pygame.JOYAXISMOTION,
+    pygame.JOYHATMOTION
+]
 
 ESP32_IP = "10.224.10.188"
 ESP32_PORT = 4210
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 def main():
+    global clock
+    global running
     pygame.init()
     pygame.joystick.init()
     
@@ -18,9 +31,18 @@ def main():
     joystick = pygame.joystick.Joystick(0)
     joystick.init()
     print(f"Connected to controller: {joystick.get_name()}")
+    while running:
+        events = pygame.event.get()
+        for event in events:
+            print(event)
+        clock.tick(60)
     pygame.quit()    
+    sys.exit()
 
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("exit")
