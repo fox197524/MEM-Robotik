@@ -6,14 +6,14 @@ WiFiUDP udp;
 unsigned int localPort = 4210;
 char packetBuffer[255];
 unsigned long lastAxisPacket = 0;
-const unsigned long TIMEOUT = 500;
+const unsigned long TIMEOUT = 5000;
 
 #define WIFI_SSID "Fox-17"
 #define WIFI_PSWD "Kyra2bin9"
 
 // Global Axis States
 float axis0 = 0.0;
-float axis2 = -1.0; 
+float axis2 = -1.0;
 float axis5 = -1.0;
 float axis3 = 0.0;
 float axis4 = 0.0;
@@ -31,7 +31,7 @@ void setMotor(int in1, int in2, int pwm, int dir, int speed) {
     digitalWrite(in2, HIGH);
     analogWrite(pwm, abs(speed));
 
-  } else if (dir == 0){
+  } else if (dir == 0) {
     digitalWrite(in1, LOW);
     digitalWrite(in2, LOW);
     analogWrite(pwm, abs(speed));
@@ -40,16 +40,18 @@ void setMotor(int in1, int in2, int pwm, int dir, int speed) {
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
     analogWrite(pwm, abs(speed));
-  } else if (dir == 2){
-    digitalWrite(in1, HIGH); // FOR SUDDENLY BRAKING
-    digitalWrite(in2, HIGH); 
-    digitalWrite(pwm, LOW); // pwm low for sudden brake
+  } else if (dir == 2) {
+    digitalWrite(in1, HIGH);  // FOR SUDDENLY BRAKING
+    digitalWrite(in2, HIGH);
+    digitalWrite(pwm, LOW);  // pwm low for sudden brake
   }
 }
 
+int getSpeed(float axis_val) {
+  return axis_val * 64 + 192;
+}
 
 void suddenStop() {
-
   setMotor(RL_IN1, RL_IN2, RL_PWM, 2, 0);
   setMotor(RR_IN1, RR_IN2, RR_PWM, 2, 0);
   setMotor(FL_IN1, FL_IN2, FL_PWM, 2, 0);
@@ -65,13 +67,21 @@ void stopAll() {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(RL_IN1, OUTPUT); pinMode(RL_IN2, OUTPUT); pinMode(RL_PWM, OUTPUT);
-  pinMode(RR_IN1, OUTPUT); pinMode(RR_IN2, OUTPUT); pinMode(RR_PWM, OUTPUT);
-  pinMode(FL_IN1, OUTPUT); pinMode(FL_IN2, OUTPUT); pinMode(FL_PWM, OUTPUT);
-  pinMode(FR_IN1, OUTPUT); pinMode(FR_IN2, OUTPUT); pinMode(FR_PWM, OUTPUT);
-  
+  pinMode(RL_IN1, OUTPUT);
+  pinMode(RL_IN2, OUTPUT);
+  pinMode(RL_PWM, OUTPUT);
+  pinMode(RR_IN1, OUTPUT);
+  pinMode(RR_IN2, OUTPUT);
+  pinMode(RR_PWM, OUTPUT);
+  pinMode(FL_IN1, OUTPUT);
+  pinMode(FL_IN2, OUTPUT);
+  pinMode(FL_PWM, OUTPUT);
+  pinMode(FR_IN1, OUTPUT);
+  pinMode(FR_IN2, OUTPUT);
+  pinMode(FR_PWM, OUTPUT);
+
   stopAll();
-  
+
   WiFi.begin(WIFI_SSID, WIFI_PSWD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -87,86 +97,92 @@ void loop() {
   if (packetSize) {
     int len = udp.read(packetBuffer, 255);
     if (len > 0) packetBuffer[len] = 0;
-    
+
     String message = String(packetBuffer);
-    
+
     if (message.startsWith("AXIS 5 ")) {
-      axis5 = message.substring(7).toFloat(); // we should direct to the getSpeed() function here to calculate the speed with the axises
+      axis5 = message.substring(7).toFloat();  // we should direct to the getSpeed() function here to calculate the speed with the axises
       lastAxisPacket = now;
     } else if (message.startsWith("AXIS 2 ")) {
       axis2 = message.substring(7).toFloat();
       lastAxisPacket = now;
-    } else if (message.startsWith("AXIS 3 ")){
+    } else if (message.startsWith("AXIS 3 ")) {
       axis3 = message.substring(7).toFloat();
       lastAxisPacket = now;
-    } else if (message.startsWith("AXIS 0 ")){
+    } else if (message.startsWith("AXIS 0 ")) {
       axis0 = message.substring(7).toFloat();
       lastAxisPacket = now;
     }
   }
-  
+
   // --- FINAL LOGIC ENGINE ---
-  
+
   // 1. Safety Timeout (If no signal for 500ms, stop)
   if (now - lastAxisPacket > TIMEOUT) {
     stopAll();
     Serial.println("TIMEOUT - CONNECTION LOST");
   }
-  
+
   // 2. Drive Forward (Trigger 5)
-  else if (axis5 > -0.900) {
-      Serial.println("FORWARD");
-      setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
-      setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
-      setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
-      setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
-  } 
-  
+  else if (axis5 > -0.995) {  // or inside these conditions
+    //Serial.println("FORWARD");
+    speed = getSpeed(axis5);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
+    setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
+    setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
+    Serial.println("FORWARD:" + String(speed));
+  }
+
   // 3. Drive Reverse (Trigger 2)
-  else if (axis2 > -0.900) {
-      Serial.println("REVERSE");
-      setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
-      setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);
-      setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
-      setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
-  } 
-  
+  else if (axis2 > -0.995) {
+    //Serial.println("REVERSE");
+    speed = getSpeed(axis2);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);
+    setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
+    setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
+    Serial.println("REVERSE:" + String(speed));
+
+  }
+
   // 4. Spin Left (Stick pushed far left)
-  else if (axis3 < -0.150) { 
+  else if (axis3 < -0.045) {
     Serial.println("360 LEFT");
-    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed); // Left side backwards
+    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);  // Left side backwards
     setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
     setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);  // Right side forwards
     setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
   }
-  
+
   // 5. Spin Right (Stick pushed far right)
-  else if (axis3 > 0.150) {
+  else if (axis3 > 0.045) {
     Serial.println("360 RIGHT");
     setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);  // Left side forwards
     setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
-    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed); // Right side backwards
+    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);  // Right side backwards
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
   }
 
-  else if (axis0 > -0.010){
+  else if (axis0 > -0.010) {
     Serial.println("MOVE RIGHT");
-    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);  
+    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
     setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
-    setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed); 
+    setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
   }
 
-  else if (axis0 < -0.030){
+  else if (axis0 < -0.030) {
     Serial.println("MOVE LEFT");
-    setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);  
+    setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
     setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
-    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed); 
+    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);
     setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
-  } 
-  
+  }
+
   else {
     Serial.println("STOPPED");
     stopAll();
   }
+  delay(5);
 }
