@@ -2,6 +2,11 @@
 #include <Wire.h>
 #include "MPU6050.h"
 #include <BasicLinearAlgebra.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
 using namespace BLA;
 
 // --- State vector X = [x, y, theta, v, omega] ---
@@ -13,7 +18,7 @@ BLA::Matrix<5,5> Q = BLA::Identity<5,5>() * 0.01;
 BLA::Matrix<5,5> Rultra= BLA::Identity<5,5>() * 0.5;
 
 // --- Pinouts ---
-// Hall sensors
+// Encoders
 #define RL_D1 1
 #define RL_D2 2
 #define RR_D1 4
@@ -33,6 +38,10 @@ BLA::Matrix<5,5> Rultra= BLA::Identity<5,5>() * 0.5;
 // MPU6050 I2C
 #define SDA_PIN 41
 #define SCL_PIN 42
+
+//RX-TX to N8R2 esp32
+#define RX_PIN 
+#define TX_PIN 
 
 // --- Calibration constants ---
 float wheelCircumference = 31.4; // cm
