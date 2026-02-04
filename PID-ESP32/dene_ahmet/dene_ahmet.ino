@@ -109,5 +109,4 @@ void loop(){
   digitalWrite(ER_IN2, LOW);
   analogWrite(ER_PWM, 255);
 
-  delay(1000);
 }
