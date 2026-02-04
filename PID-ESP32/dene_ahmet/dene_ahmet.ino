@@ -85,7 +85,6 @@ void setup() {
 }
 
 void loop(){
-  /*
   digitalWrite(RL_IN1, HIGH);
   digitalWrite(RL_IN2, LOW);
   analogWrite(RL_PWM, 255);
@@ -101,7 +100,6 @@ void loop(){
   digitalWrite(FR_IN1, HIGH);
   digitalWrite(FR_IN2, LOW);
   analogWrite(FR_PWM, 255);
-  */
 
   digitalWrite(EL_IN1, HIGH);
   digitalWrite(EL_IN2, LOW);
@@ -110,14 +108,6 @@ void loop(){
   digitalWrite(ER_IN1, HIGH);
   digitalWrite(ER_IN2, LOW);
   analogWrite(ER_PWM, 255);
-  delay(1000);
 
-  digitalWrite(EL_IN1, LOW);
-  digitalWrite(EL_IN2, HIGH);
-  analogWrite(EL_PWM, 255);
-
-  digitalWrite(ER_IN1, LOW);
-  digitalWrite(ER_IN2, HIGH);
-  analogWrite(ER_PWM, 255);
-  delay(1000);
+  delay(1000)
 }

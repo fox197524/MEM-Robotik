@@ -33,8 +33,14 @@ def main():
     print(f"Connected to controller: {joystick.get_name()}")
     while running:
         events = pygame.event.get()
-        for event in events:
-            print(event)
+        for b in range(joystick.get_numbuttons()):
+            if joystick.get_button(b):
+                print(f"Button: {b}")
+                time.sleep(1/60)
+        for axis in range(joystick.get_numaxes()):
+            value = joystick.get_axis(axis)
+            if abs(value) > 0.1:
+                print(f"Axis: {axis}: {value:.3f}")
         clock.tick(60)
     pygame.quit()    
     sys.exit()
