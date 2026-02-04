@@ -32,11 +32,9 @@ void IRAM_ATTR isrFL() { if (digitalRead(FL_A) == digitalRead(FL_B)) countFL++; 
 void IRAM_ATTR isrFR() { if (digitalRead(FR_A) == digitalRead(FR_B)) countFR++; else countFR--; }
 
 // === RPM Calculation ===
-float calcRPM(long &pulses) {
+float calcRPM(long pulses) {
   const int PPR = 100; // replace with your encoder’s pulses per revolution
-  long p = pulses;
-  pulses = 0; // reset after reading
-  return (p / (float)PPR) * 60.0;
+  return (pulses / (float)PPR) * 60.0;
 }
 
 // === HC-SR04 Distance Function ===
@@ -126,10 +124,10 @@ void loop() {
   // Continuous outputs every 1 second
   unsigned long now = millis();
   if (now - lastTime >= 1000) {
-    if (showFRRPM) { Serial.print("FR RPM: "); Serial.println(calcRPM(countFR)); }
-    if (showFLRPM) { Serial.print("FL RPM: "); Serial.println(calcRPM(countFL)); }
-    if (showRRRPM) { Serial.print("RR RPM: "); Serial.println(calcRPM(countRR)); }
-    if (showRLRPM) { Serial.print("RL RPM: "); Serial.println(calcRPM(countRL)); }
+    if (showFRRPM) { long pulses = countFR; countFR = 0; Serial.print("FR RPM: "); Serial.println(calcRPM(pulses)); }
+    if (showFLRPM) { long pulses = countFL; countFL = 0; Serial.print("FL RPM: "); Serial.println(calcRPM(pulses)); }
+    if (showRRRPM) { long pulses = countRR; countRR = 0; Serial.print("RR RPM: "); Serial.println(calcRPM(pulses)); }
+    if (showRLRPM) { long pulses = countRL; countRL = 0; Serial.print("RL RPM: "); Serial.println(calcRPM(pulses)); }
 
     if (showFRHCSR) { Serial.print("Front Distance: "); Serial.print(readHCSR(HCSR_FRONT)); Serial.println(" cm"); }
     if (showRTHCSR) { Serial.print("Right Distance: "); Serial.print(readHCSR(HCSR_RIGHT)); Serial.println(" cm"); }
