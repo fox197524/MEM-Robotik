@@ -44,12 +44,12 @@ BLA::Matrix<5,5> Rultra= BLA::Identity<5,5>() * 0.5;
 #define TX_PIN 
 
 // --- Calibration constants ---
-float wheelCircumference = 31.4; // cm
-int ticksPerRev = 48;
-float tickToCm = wheelCircumference / ticksPerRev;
-float wheelbase = 31.75; // cm
-float gyroScale = 131.0;   // LSB/°/s for ±250 range
-float gyroOffset = -135.0; // measured offset
+const float wheelCircumference = 31.4; // cm
+const int ticksPerRev = 48;
+const float tickToCm = wheelCircumference / ticksPerRev;
+const float wheelbase = 31.75; // cm
+const float gyroScale = 131.0;   // LSB/°/s for ±250 range
+const float gyroOffset = -135.0; // measured offset
 
 // --- Hall counters ---
 volatile long RL_count = 0, RR_count = 0, FL_count = 0, FR_count = 0;
