@@ -17,31 +17,50 @@ BLA::Matrix<5,5> P = BLA::Identity<5,5>() * 0.1;
 BLA::Matrix<5,5> Q = BLA::Identity<5,5>() * 0.01;
 BLA::Matrix<5,5> Rultra= BLA::Identity<5,5>() * 0.5;
 
-// --- Pinouts ---
-// Encoders
-#define RL_D1 1
-#define RL_D2 2
-#define RR_D1 4
-#define RR_D2 5
-#define FL_D1 6
-#define FL_D2 7
-#define FR_D1 8
-#define FR_D2 9
 
-// Ultrasonics
-#define TRIG_PIN 14
-#define ECHO_FRONT 15
-#define ECHO_RIGHT 16
-#define ECHO_LEFT 17
-#define ECHO_REAR 18
 
-// MPU6050 I2C
-#define SDA_PIN 41
-#define SCL_PIN 42
+//======PID PINOUT=====
+
+// ENCODERS
+
+const int EN_RL1 = 1; // Encoder on Right Left Motor First pin
+const int EN_RL2 = 2; // Encoder on Right Left Motor Second pin
+
+const int EN_RR1 = 4;
+const int EN_RR2 = 5;
+
+const int EN_FL1 = 6;
+const int EN_FL2 = 7;
+
+const int EN_FR1 = 8;
+const int EN_FR2 = 9;
+
+const int EN_EL1 = 10;
+const int EN_EL2 = 11;
+
+const int EN_ER1 = 12;
+const int EN_ER2 = 13;
+
+// DISTANCE SENSORS HC-SR04
+
+const int D_TRIG = 14; // Common Trig Pin 14 for all distance sensors
+
+const int D_FRNT = 15; // Echo pin for front distance sensor
+const int D_RGHT = 16;
+const int D_LEFT = 17;
+const int D_REAR = 18;
+
+// ACCELERATOR MPU6050 SENSOR
+
+const int MPU_SDA = 41;
+const int MPU_SCL = 42;
 
 //RX-TX to N8R2 esp32
-#define RX_PIN 
-#define TX_PIN 
+const int RX_PIN = 47;
+const int TX_PIN = 20;
+
+Wire.begin(MPU_SDA, MPU_SCL);
+
 
 // --- Calibration constants ---
 const float wheelCircumference = 31.4; // cm
@@ -155,76 +174,37 @@ void positionPID() {
 MPU6050 mpu;
 
 void setup() {
+  // PIN MODE  
+  pinMode(EN_RL1, INPUT);  
+  pinMode(EN_RL2, INPUT);
+  pinMode(EN_RR1, INPUT);
+  pinMode(EN_RR2, INPUT);
+  pinMode(EN_FL1, INPUT);
+  pinMode(EN_FL2, INPUT);
+  pinMode(EN_FR1, INPUT);
+  pinMode(EN_FR2, INPUT);
+  pinMode(EN_EL1, INPUT);
+  pinMode(EN_EL2, INPUT);
+  pinMode(EN_ER1, INPUT);
+  pinMode(EN_ER2, INPUT);
+    pinMode(D_TRIG, OUTPUT); // Trig pin mode OUTPUT
+    pinMode(D_FRNT, INPUT); // Echo pin mode INPUT
+    pinMode(D_RGHT, INPUT);
+    pinMode(D_LEFT, INPUT);
+    pinMode(D_REAR, INPUT);
+
   Serial.begin(115200);
-
-  // Encoders
-  pinMode(RL_D1, INPUT); pinMode(RL_D2, INPUT);
-  pinMode(RR_D1, INPUT); pinMode(RR_D2, INPUT);
-  pinMode(FL_D1, INPUT); pinMode(FL_D2, INPUT);
-  pinMode(FR_D1, INPUT); pinMode(FR_D2, INPUT);
-
-  attachInterrupt(digitalPinToInterrupt(RL_D1), RL_ISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(RR_D1), RR_ISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(FL_D1), FL_ISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(FR_D1), FR_ISR, RISING);
-
-  // Ultrasonics
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_FRONT, INPUT);
-  pinMode(ECHO_RIGHT, INPUT);
-  pinMode(ECHO_LEFT, INPUT);
-  pinMode(ECHO_REAR, INPUT);
-
-  // MPU6050
-  Wire.begin(SDA_PIN, SCL_PIN);
-  mpu.initialize();
+  delay(1000);
+  Serial.print("ESP32-N16R8 Başlatıldı.");
+    // MPU6050 Initialization
+    mpu.initialize();
+    if (!mpu.testConnection()) {
+        Serial.println("MPU6050 bağlantı hatası!");
+        while (1);
+    } else {
+        Serial.println("MPU6050 bağlantısı başarılı.");
+    }
 }
 
 // --- Loop ---
 void loop() {
-  static unsigned long lastTime = millis();
-  unsigned long now = millis();
-  float dt = (now - lastTime) / 1000.0;
-  lastTime = now;
-
-  // Gyro
-  int16_t gx, gy, gz;
-  mpu.getRotation(&gx, &gy, &gz);
-
-  // Prediction step
-  kalmanPredict(dt, gz, RL_count, RR_count, FL_count, FR_count);
-
-  // Median-filtered ultrasonic readings
-  float distFront = medianFilter(ECHO_FRONT);
-  float distRear  = medianFilter(ECHO_REAR);
-  float distLeft  = medianFilter(ECHO_LEFT);
-  float distRight = medianFilter(ECHO_RIGHT);
-
-  // --- Auto-localization ---
-  // Arena length/width can be set once (e.g. 100 cm), but robot estimates its position
-  float arenaLength = 100.0; // cm
-  float arenaWidth  = 100.0; // cm
-
-  // Estimate X and Y from pairs of sensors
-  float estX = (arenaLength - distFront + distRear) / 2.0;
-  float estY = (arenaWidth  - distLeft  + distRight) / 2.0;
-
-  // Build measurement vector
-  BLA::Matrix<5,1> Zpos = {estX, estY, 0, 0, 0};
-  BLA::Matrix<5,5> Hpos = BLA::Identity<5,5>();
-
-  // Update Kalman with inferred position
-  kalmanUpdate(Zpos, Hpos, Rultra);
-
-  // PID control toward target waypoint
-  positionPID();
-
-  // Log fused state
-  Serial.print("X: "); Serial.print(X(0));
-  Serial.print(" Y: "); Serial.print(X(1));
-  Serial.print(" Theta: "); Serial.print(X(2));
-  Serial.print(" V: "); Serial.print(X(3));
-  Serial.print(" Omega: "); Serial.println(X(4));
-
-  delay(50);
-}
