@@ -166,7 +166,7 @@ void TaskWiFi(void*){
   WiFi.begin(ssid,password);
   while(WiFi.status()!=WL_CONNECTED){ delay(500); }
   udp.begin(localPort);
-
+  Serial.
   while(true){
     int packetSize=udp.parsePacket();
     if(packetSize){
