@@ -47,8 +47,22 @@ void setMotor(int in1, int in2, int pwm, int dir, int speed) {
   }
 }
 
-int getSpeed(float axis_val) {
+int getSpeedTrig(float axis_val) {
   return axis_val * 64 + 192;
+}
+
+int getSpeedJoy(float axis_val){
+  if (axis_val < 0){
+    return -255 * axis_val;
+  } 
+
+  else if(axis_val == 0){
+    return 0;
+  }
+
+  else if(axis_val > 0){
+    return 255 * axis_val;
+  }
 }
 
 void suddenStop() {
@@ -126,7 +140,7 @@ void loop() {
   // 2. Drive Forward (Trigger 5)
   else if (axis5 > -0.995) {  // or inside these conditions
     //Serial.println("FORWARD");
-    speed = getSpeed(axis5);
+    speed = getSpeedTrig(axis5);
     setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
     setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
     setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
@@ -137,7 +151,7 @@ void loop() {
   // 3. Drive Reverse (Trigger 2)
   else if (axis2 > -0.995) {
     //Serial.println("REVERSE");
-    speed = getSpeed(axis2);
+    speed = getSpeedTrig(axis2);
     setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
     setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);
     setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
