@@ -12,11 +12,12 @@ const unsigned long TIMEOUT = 5000;
 #define WIFI_PSWD "Kyra2bin9"
 
 // Global Axis States
-float axis0 = 0.0;
-float axis2 = -1.0;
-float axis5 = -1.0;
-float axis3 = 0.0;
-float axis4 = 0.0;
+float axis0 = 0.0; // SPIN 360
+float axis2 = -1.0; // REVERSE
+float axis5 = -1.0; // FORWARD
+float axis3 = 0.0; // MOVE RIGHT-LEFT
+int axis13 = 0; // ELEVATOR UP
+int axis14 = 0; // ELEVATOR DOWN
 
 int speed = 255;
 
@@ -24,6 +25,7 @@ const int RL_PWM = 7, RL_IN1 = 8, RL_IN2 = 9;
 const int RR_PWM = 12, RR_IN1 = 13, RR_IN2 = 11;
 const int FL_PWM = 15, FL_IN1 = 16, FL_IN2 = 17;
 const int FR_PWM = 4, FR_IN1 = 5, FR_IN2 = 6;
+
 
 void setMotor(int in1, int in2, int pwm, int dir, int speed) {
   if (dir == -1) {
@@ -128,6 +130,8 @@ void loop() {
     stopAll();
     Serial.println("TIMEOUT - CONNECTION LOST");
   }
+
+
 
   // 2. Drive Forward (Trigger 5)
   else if (axis5 > -0.995) {  // or inside these conditions
