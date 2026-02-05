@@ -152,6 +152,27 @@ void loop() {
 
   }
 
+
+  else if (axis0 > 0.040) {
+    //Serial.println("MOVE RIGHT");
+    speed = getSpeedJoy(axis0);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
+    setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
+    setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
+    Serial.println("MOVE RIGHT:" + String(speed));
+  }
+
+  else if (axis0 < -0.040) {
+    //Serial.println("MOVE LEFT");
+    speed = getSpeedJoy(axis0);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
+    setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);
+    setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
+    Serial.println("MOVE LEFT:" + String(speed));
+  }
+
   // 4. Spin Left (Stick pushed far left)
   else if (axis3 < -0.045) {
     //Serial.println("360 LEFT");
@@ -172,26 +193,6 @@ void loop() {
     setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);  // Right side backwards
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
     Serial.println("360 RIGHT:" + String(speed));
-  }
-
-  else if (axis0 > 0.040) {
-    //Serial.println("MOVE RIGHT");
-    speed = getSpeedJoy(axis0);
-    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
-    setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
-    setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
-    setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
-    Serial.println("MOVE RIGHT:" + String(speed));
-  }
-
-  else if (axis0 < -0.040) {
-    //Serial.println("MOVE LEFT");
-    speed = getSpeedJoy(axis0);
-    setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
-    setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
-    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);
-    setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
-    Serial.println("MOVE LEFT:" + String(speed));
   }
 
   else {
