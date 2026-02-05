@@ -184,7 +184,7 @@ void loop() {
     Serial.println("MOVE RIGHT:" + String(speed));
   }
 
-  else if (axis0 < -0.030) {
+  else if (axis0 < -0.050) {
     //Serial.println("MOVE LEFT");
     speed = getSpeedJoy(axis0);
     setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
