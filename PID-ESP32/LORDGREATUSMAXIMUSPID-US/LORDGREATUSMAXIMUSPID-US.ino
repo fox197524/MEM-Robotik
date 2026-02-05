@@ -119,6 +119,8 @@ float medianFilterUltrasonic(int echoPin){
 
 void sendToSlave(float f,float s,float t,int servo,int el_up,int el_down){
   Serial2.printf("MOV %.2f,%.2f,%.2f,%d,%d,%d\n",f,s,t,servo,el_up,el_down);
+  Serial.printf("[OUT] f=%.2f s=%.2f t=%.2f | servo=%d el_up=%d el_down=%d\n",
+                f,s,t,servo,el_up,el_down);
 }
 
 // Kalman prediction using only FL and RR
@@ -179,6 +181,7 @@ void TaskWiFi(void*){
         if(id==2) axis2=val;
         if(id==4) axis4=val;
         if(id==5) axis5=val;
+        Serial.printf("[UDP] Axis %d = %.2f\n", id, val);
       }
       if(msg.startsWith("BUTTON")){
         int id=msg.substring(7,9).toInt();
@@ -186,6 +189,7 @@ void TaskWiFi(void*){
         if(id==6) btn6=val;
         if(id==12) btn12=val;
         if(id==13) btn13=val;
+        Serial.printf("[UDP] Button %d = %d\n", id, val);
       }
     }
     vTaskDelay(10/portTICK_PERIOD_MS);
@@ -233,8 +237,8 @@ void loop(){
   if(Serial.available()){
     String cmd=Serial.readStringUntil('\n');
     cmd.trim();
-    if(cmd.equalsIgnoreCase("DEBUGON")){ debugMode=true; Serial.println("[MODE] Debugging mode enabled"); }
-    else if(cmd.equalsIgnoreCase("DEBUGOFF")){ debugMode=false; Serial.println("[MODE] Normal robot loop enabled"); }
+    if(cmd.equalsIgnoreCase("DEBUGON")){ debugMode=true; Serial.println("Debugging mode enabled"); }
+    else if(cmd.equalsIgnoreCase("DEBUGOFF")){ debugMode=false; Serial.println("Normal robot loop enabled"); }
     else if(cmd.equalsIgnoreCase("RPMON")) showRPM=true;
     else if(cmd.equalsIgnoreCase("RPMOFF")) showRPM=false;
     else if(cmd.equalsIgnoreCase("USON")) showUltrasonic=true;
@@ -269,6 +273,8 @@ void loop(){
   // Kalman prediction with only FL and RR
   kalmanPredict(dt, gz, cntFL, cntRR);
   cntFL = cntRR = 0; // reset after use
+  Serial.printf("[STATE] Pos=(%.1f, %.1f) Heading=%.2f rad Vel=%.2f cm/s\n",
+              X(0), X(1), X(2), X(3));
 
   // Mode switch timing
   if(now - startTime > AUTONOMOUS_DURATION) isAutonomous = false;
