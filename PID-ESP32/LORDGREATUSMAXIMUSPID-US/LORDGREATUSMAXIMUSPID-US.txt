@@ -262,10 +262,6 @@ void loop(){
   int16_t gx, gy, gz;
   mpu.getRotation(&gx,&gy,&gz);
 
-  if (abs(gz - GYRO_OFFSET) < 65) {
-    gz = GYRO_OFFSET;
-  }
-  
   // Kalman prediction with only FL and RR
   kalmanPredict(dt, gz, cntFL, cntRR);
   cntFL = cntRR = 0; // reset after use
