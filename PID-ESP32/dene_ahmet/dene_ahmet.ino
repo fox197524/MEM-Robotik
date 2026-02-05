@@ -137,9 +137,9 @@ void loop() {
       Serial.println(button13);
 
     } else if (message.startsWith("BUTTON 13")){
-      button13 = message.substring(10).toInt();
+      button14 = message.substring(10).toInt();
       lastAxisPacket = now;
-      Serial.println(button13);
+      Serial.println(button14);
 
     }
   }
@@ -222,13 +222,13 @@ void loop() {
   else if (button13 == 1) {
     setMotor(ER_IN1, ER_IN2, ER_PWM, 1, 255);
     setMotor(EL_IN1, EL_IN2, EL_PWM, -1, 255);
-    Serial.println("ELEVATOR UP:");
+    Serial.println("ELEVATOR UP");
   }
   
   else if (button14 == 1) {
     setMotor(ER_IN1, ER_IN2, ER_PWM, -1, 255);
     setMotor(EL_IN1, EL_IN2, EL_PWM, +1, 255);
-    Serial.println("ELEVATOR DOWN:");
+    Serial.println("ELEVATOR DOWN");
   }
 
   else {
