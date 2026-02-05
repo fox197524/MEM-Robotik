@@ -162,11 +162,13 @@ void loop() {
 
   // 4. Spin Left (Stick pushed far left)
   else if (axis3 < -0.045) {
-    Serial.println("360 LEFT");
+    //Serial.println("360 LEFT");
+    speed = getSpeedJoy(axis3);
     setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);  // Left side backwards
     setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
     setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);  // Right side forwards
     setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
+    Serial.println("360 LEFT:" + String(speed));
   }
 
   // 5. Spin Right (Stick pushed far right)
