@@ -33,7 +33,7 @@ void IRAM_ATTR isrFR() { if (digitalRead(FR_A) == digitalRead(FR_B)) countFR++; 
 
 // === RPM Calculation ===
 float calcRPM(long pulses) {
-  const int PPR = 100; // replace with your encoder’s pulses per revolution
+  const int PPR = 48; // replace with your encoder’s pulses per revolution
   return (pulses / (float)PPR) * 60.0;
 }
 
@@ -124,15 +124,17 @@ void loop() {
   // Continuous outputs every 1 second
   unsigned long now = millis();
   if (now - lastTime >= 1000) {
+    // === RPM outputs ===
     if (showFRRPM) { long pulses = countFR; countFR = 0; Serial.print("FR RPM: "); Serial.println(calcRPM(pulses)); }
     if (showFLRPM) { long pulses = countFL; countFL = 0; Serial.print("FL RPM: "); Serial.println(calcRPM(pulses)); }
     if (showRRRPM) { long pulses = countRR; countRR = 0; Serial.print("RR RPM: "); Serial.println(calcRPM(pulses)); }
     if (showRLRPM) { long pulses = countRL; countRL = 0; Serial.print("RL RPM: "); Serial.println(calcRPM(pulses)); }
 
-    if (showFRHCSR) { Serial.print("Front Distance: "); Serial.print(readHCSR(HCSR_FRONT)); Serial.println(" cm"); }
-    if (showRTHCSR) { Serial.print("Right Distance: "); Serial.print(readHCSR(HCSR_RIGHT)); Serial.println(" cm"); }
-    if (showLTHCSR) { Serial.print("Left Distance: "); Serial.print(readHCSR(HCSR_LEFT)); Serial.println(" cm"); }
-    if (showRRHCSR) { Serial.print("Rear Distance: "); Serial.print(readHCSR(HCSR_REAR)); Serial.println(" cm"); }
+    // === Ultrasonic outputs ===
+    if (showFRHCSR) { long d = readHCSR(HCSR_FRONT); Serial.print("Front Distance: "); Serial.println(d == -1 ? "No echo" : String(d) + " cm"); }
+    if (showRTHCSR) { long d = readHCSR(HCSR_RIGHT); Serial.print("Right Distance: "); Serial.println(d == -1 ? "No echo" : String(d) + " cm"); }
+    if (showLTHCSR) { long d = readHCSR(HCSR_LEFT); Serial.print("Left Distance: "); Serial.println(d == -1 ? "No echo" : String(d) + " cm"); }
+    if (showRRHCSR) { long d = readHCSR(HCSR_REAR); Serial.print("Rear Distance: "); Serial.println(d == -1 ? "No echo" : String(d) + " cm"); }
 
     lastTime = now;
   }
