@@ -23,7 +23,7 @@
 using namespace BLA;
 
 // ================= USER CONFIG =================
-const char* ssid = "Fox-2";
+const char* ssid = "Fox-17";
 const char* password = "Kyra2bin9";
 const int localPort = 4210;
 const unsigned long AUTONOMOUS_DURATION = 0; // 60s
