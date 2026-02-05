@@ -11,7 +11,6 @@ def main():
     ESP32_PORT = 4210
     
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Port reuse
     sock.settimeout(2.0)  # Timeout
     
@@ -49,8 +48,8 @@ def main():
             axis_turn_360 = joystick.get_axis(0)   # 
             axis_slide_L_R = joystick.get_axis(3) # 
             button_LID = joystick.get_button(0)  # Button 0 - Servo toggle
-            button_elevator_up = joystick.get_button(11)  # Button 11 - Elevator up
-            button_elevator_down = joystick.get_button(12)  # Button 12 - Elevator down
+            button_elevator_up = joystick.get_button(13)  # Button 13 - Elevator up
+            button_elevator_down = joystick.get_button(14)  # Button 14 - Elevator down
        
     
             msgs = [
@@ -60,18 +59,20 @@ def main():
                 f"AXIS 4 {axis_turn_360:.3f}",
                 f"AXIS 5 {axis_Forward:.3f}",
                 f"BUTTON 0 {1 if button_LID else 0}",
-                f"BUTTON 11 {1 if button_elevator_up else 0}",
-                f"BUTTON 12 {1 if button_elevator_down else 0}"
+                f"BUTTON 13 {1 if button_elevator_up else 0}",
+                f"BUTTON 14 {1 if button_elevator_down else 0}"
             ]
-            
+            print(msgs) 
+            """
             for i in range(joystick.get_numaxes()):
                 val = joystick.get_axis(i)
                 print(f"Axis {i}: {val:.3f}")
     
             for i in range(joystick.get_numbuttons()):
                 state = joystick.get_button(i)
-                print(f"Button {i}:{state}")
-    
+                print(f"Button {i}: {state}")
+            """ 
+
             for msg in msgs:
                 sock.sendto(msg.encode(), (ESP32_IP, ESP32_PORT))
     

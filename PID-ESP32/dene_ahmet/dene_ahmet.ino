@@ -51,7 +51,7 @@ void setMotor(int in1, int in2, int pwm, int dir, int speed) {
 }
 
 int getSpeedTrig(float axis_val) {
-  return axis_val * 64 + 192;
+  return axis_val * 64 + 191;
 }
 
 int getSpeedJoy(float axis_val){
@@ -117,11 +117,10 @@ void loop() {
   if (packetSize) {
     int len = udp.read(packetBuffer, 255);
     if (len > 0) packetBuffer[len] = 0;
-
     String message = String(packetBuffer);
 
     if (message.startsWith("AXIS 5 ")) {
-      axis5 = message.substring(7).toFloat();  // we should direct to the getSpeed() function here to calculate the speed with the axises
+      axis5 = message.substring(7).toFloat();  
       lastAxisPacket = now;
     } else if (message.startsWith("AXIS 2 ")) {
       axis2 = message.substring(7).toFloat();
@@ -132,12 +131,16 @@ void loop() {
     } else if (message.startsWith("AXIS 0 ")) {
       axis0 = message.substring(7).toFloat();
       lastAxisPacket = now;
-    } else if (message.startsWith("Button 13 ")){
+    } else if (message.startsWith("BUTTON 12")){
       button13 = message.substring(10).toInt();
       lastAxisPacket = now;
-    } else if (message.startsWith("Button 14 ")){
-      button14 = message.substring(10).toInt();
+      Serial.println(button13);
+
+    } else if (message.startsWith("BUTTON 13")){
+      button13 = message.substring(10).toInt();
       lastAxisPacket = now;
+      Serial.println(button13);
+
     }
   }
 
@@ -219,13 +222,13 @@ void loop() {
   else if (button13 == 1) {
     setMotor(ER_IN1, ER_IN2, ER_PWM, 1, 255);
     setMotor(EL_IN1, EL_IN2, EL_PWM, -1, 255);
-    Serial.println("ELEVATOR DOWN:");
+    Serial.println("ELEVATOR UP:");
   }
   
   else if (button14 == 1) {
-    setMotor(ER_IN1, ER_IN2, ER_PWM, -1, speed);
-    setMotor(EL_IN1, EL_IN2, EL_PWM, +1, speed);
-    Serial.println("ELEVATOR UP:" + String(speed));
+    setMotor(ER_IN1, ER_IN2, ER_PWM, -1, 255);
+    setMotor(EL_IN1, EL_IN2, EL_PWM, +1, 255);
+    Serial.println("ELEVATOR DOWN:");
   }
 
   else {
