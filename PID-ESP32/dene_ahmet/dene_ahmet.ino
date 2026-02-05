@@ -19,6 +19,11 @@ float axis3 = 0.0; // MOVE RIGHT-LEFT
 int button13 = 0; // ELEVATOR UP
 int button14 = 0; // ELEVATOR DOWN
 
+float fr_sens = 1.0;
+float turnSpin_sens = 1.0;
+int minSpeed = 128;
+int maxSpeed = 255;
+
 int speed = 255;
 
 const int RL_PWM = 7, RL_IN1 = 8, RL_IN2 = 9;
@@ -50,14 +55,18 @@ void setMotor(int in1, int in2, int pwm, int dir, int speed) {
   }
 }
 
+
 int getSpeedTrig(float axis_val) {
-  return axis_val * 64 + 191;
+  float scaled = axis_val * fr_sens;
+  int speed = constrain(scaled * 64 + 191, 0, maxSpeed);
+  return (speed >= minSpeed) ? speed : 0;  // Cutoff below minSpeed
 }
 
-int getSpeedJoy(float axis_val){
+int getSpeedJoy(float axis_val) {
   float abs_val = abs(axis_val);
-  int speed = (int)(abs_val * 127) + 128;
-  return speed;
+  float scaled = abs_val * turnSpin_sens;
+  int speed = constrain((int)(scaled * 127) + 128, 128, maxSpeed);
+  return (speed >= minSpeed) ? speed : 0;  // Minimum speed check only
 }
 
 void suddenStop() {
