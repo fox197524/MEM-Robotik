@@ -52,17 +52,9 @@ int getSpeedTrig(float axis_val) {
 }
 
 int getSpeedJoy(float axis_val){
-  if (axis_val < 0){
-    return -255 * axis_val;
-  } 
-
-  else if(axis_val == 0){
-    return 0;
-  }
-
-  else if(axis_val > 0){
-    return 255 * axis_val;
-  }
+  float abs_val = abs(axis_val);
+  int speed = (int)(abs_val * 127) + 128;
+  return speed;
 }
 
 void suddenStop() {
