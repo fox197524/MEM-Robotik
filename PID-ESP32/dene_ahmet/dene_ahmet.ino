@@ -16,8 +16,8 @@ float axis0 = 0.0; // SPIN 360
 float axis2 = -1.0; // REVERSE
 float axis5 = -1.0; // FORWARD
 float axis3 = 0.0; // MOVE RIGHT-LEFT
-int axis13 = 0; // ELEVATOR UP
-int axis14 = 0; // ELEVATOR DOWN
+int button13 = 0; // ELEVATOR UP
+int button14 = 0; // ELEVATOR DOWN
 
 int speed = 255;
 
@@ -25,7 +25,8 @@ const int RL_PWM = 7, RL_IN1 = 8, RL_IN2 = 9;
 const int RR_PWM = 12, RR_IN1 = 13, RR_IN2 = 11;
 const int FL_PWM = 15, FL_IN1 = 16, FL_IN2 = 17;
 const int FR_PWM = 4, FR_IN1 = 5, FR_IN2 = 6;
-
+const int EL_PWM = 18, EL_IN1 = 38, EL_IN2 = 39;
+const int ER_PWM = 1, ER_IN1 = 2, ER_IN2 = 42;
 
 void setMotor(int in1, int in2, int pwm, int dir, int speed) {
   if (dir == -1) {
@@ -78,15 +79,26 @@ void setup() {
   pinMode(RL_IN1, OUTPUT);
   pinMode(RL_IN2, OUTPUT);
   pinMode(RL_PWM, OUTPUT);
+
   pinMode(RR_IN1, OUTPUT);
   pinMode(RR_IN2, OUTPUT);
   pinMode(RR_PWM, OUTPUT);
+
   pinMode(FL_IN1, OUTPUT);
   pinMode(FL_IN2, OUTPUT);
   pinMode(FL_PWM, OUTPUT);
+
   pinMode(FR_IN1, OUTPUT);
   pinMode(FR_IN2, OUTPUT);
   pinMode(FR_PWM, OUTPUT);
+
+  pinMode(EL_IN1, OUTPUT);
+  pinMode(EL_IN2, OUTPUT);
+  pinMode(EL_PWM, OUTPUT);
+
+  pinMode(ER_IN1, OUTPUT);
+  pinMode(ER_IN2, OUTPUT);
+  pinMode(ER_PWM, OUTPUT);
 
   stopAll();
 
@@ -120,6 +132,10 @@ void loop() {
     } else if (message.startsWith("AXIS 0 ")) {
       axis0 = message.substring(7).toFloat();
       lastAxisPacket = now;
+    } else if (message.startsWith("Button 13 ")){
+      button13 = message.substring(10).toInt();
+    } else if (message.startsWith("Button 14 ")){
+      button14 = message.substring(10).toInt();
     }
   }
 
@@ -153,7 +169,6 @@ void loop() {
     setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
     Serial.println("REVERSE:" + String(speed));
-
   }
 
 
@@ -197,6 +212,18 @@ void loop() {
     setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);  // Right side backwards
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
     Serial.println("360 RIGHT:" + String(speed));
+  }
+
+  else if (button13 == 1) {
+    setMotor(ER_IN1, ER_IN2, ER_PWM, 1, speed);
+    setMotor(EL_IN1, EL_IN2, EL_PWM, -1, speed);
+    Serial.println("ELEVATOR DOWN:" + String(speed));
+  }
+  
+  else if (button13 == 1) {
+    setMotor(ER_IN1, ER_IN2, ER_PWM, -1, speed);
+    setMotor(EL_IN1, EL_IN2, EL_PWM, +1, speed);
+    Serial.println("ELEVATOR UP:" + String(speed));
   }
 
   else {
