@@ -133,9 +133,11 @@ void loop() {
       axis0 = message.substring(7).toFloat();
       lastAxisPacket = now;
     } else if (message.startsWith("Button 13 ")){
-      button13 = message.substring(7).toInt();
+      button13 = message.substring(10).toInt();
+      lastAxisPacket = now;
     } else if (message.startsWith("Button 14 ")){
-      button14 = message.substring(7).toInt();
+      button14 = message.substring(10).toInt();
+      lastAxisPacket = now;
     }
   }
 
