@@ -324,6 +324,7 @@ float medianFilterUltrasonic(int echo_pin) {
  * Read full IMU data (accelerometer + gyro)
  */
 void readRawIMU(MPU6050 &mpu, int16_t &ax, int16_t &ay, int16_t &az, int16_t &gx, int16_t &gy, int16_t &gz) {
+  // getMotion6 returns raw accel (AX,AY,AZ) and gyro (GX,GY,GZ)
   mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 }
 
