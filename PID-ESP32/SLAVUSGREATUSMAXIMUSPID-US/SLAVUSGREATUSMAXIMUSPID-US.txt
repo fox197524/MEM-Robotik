@@ -20,8 +20,7 @@ Servo servoElevator, servoBottom, servoHuni;
 
 // === Setup ===
 void setup() {
-  // Use Serial2 on RX=21, TX=10
-  Serial2.begin(115200, SERIAL_8N1, 21, 10);
+  Serial.begin(115200); // UART from master
 
   // Motor pins
   for(int i=0;i<6;i++){
@@ -35,7 +34,7 @@ void setup() {
   servoBottom.attach(SERVO_BOTTOM);
   servoHuni.attach(SERVO_HUNI);
 
-  Serial2.println("SLAVE READY");
+  Serial.println("SLAVE READY");
 }
 
 // === Motor drive ===
@@ -49,8 +48,8 @@ void driveMotor(MotorPins m, float power){
 
 // === Loop ===
 void loop() {
-  if(Serial2.available()){
-    String cmd=Serial2.readStringUntil('\n');
+  if(Serial.available()){
+    String cmd=Serial.readStringUntil('\n');
     cmd.trim();
 
     if(cmd.startsWith("MOV")){

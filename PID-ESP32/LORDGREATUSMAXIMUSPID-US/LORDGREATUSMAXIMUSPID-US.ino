@@ -68,7 +68,7 @@ const int TICKS_PER_REV = 48;
 const float TICK_TO_CM = WHEEL_CIRCUMFERENCE / TICKS_PER_REV;
 const float WHEELBASE = 31.75;
 const float GYRO_SCALE = 131.0;
-const float GYRO_OFFSET = -135.0;
+const float GYRO_OFFSET = -110.0;
 const int ELEVATOR_MAX_PULSES = 1000;
 const int ELEVATOR_MIN_PULSES = 0;
 
@@ -76,7 +76,7 @@ const int ELEVATOR_MIN_PULSES = 0;
 volatile long cntFL=0, cntRR=0;
 volatile long cntEL=0, cntER=0;
 unsigned long startTime;
-bool isAutonomous = false;
+bool isAutonomous = true;
 
 // WiFi
 WiFiUDP udp;
