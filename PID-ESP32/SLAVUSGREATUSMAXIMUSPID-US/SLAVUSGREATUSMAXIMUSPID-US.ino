@@ -1,15 +1,15 @@
 #include <Arduino.h>
-#include <Servo.h>
+#include <ESP32Servo.h>
 
 // === Motor Pins (from your pinout) ===
-struct MotorPins { int pwm, in1, in2; };
+struct MotorPins { int pwm, in1, in2, channel; };
 MotorPins motors[6] = {
-  {7, 8, 9},    // M1 Rear Left
-  {12, 11, 13}, // M2 Rear Right
-  {15, 16, 17}, // M3 Front Left
-  {4, 5, 6},    // M4 Front Right
-  {18, 38, 39}, // M5 Elevator Left
-  {1, 2, 42}    // M6 Elevator Right
+  {7, 8, 9, 0},    // M1 Rear Left
+  {12, 11, 13, 1}, // M2 Rear Right
+  {15, 16, 17, 2}, // M3 Front Left
+  {4, 5, 6, 3},    // M4 Front Right
+  {18, 38, 39, 4}, // M5 Elevator Left
+  {1, 2, 42, 5}    // M6 Elevator Right (kept as you defined)
 };
 
 // === Servos ===
@@ -23,17 +23,16 @@ void setup() {
   // Use Serial2 on RX=21, TX=10
   Serial2.begin(115200, SERIAL_8N1, 21, 10);
 
-  // Motor pins
   for(int i=0;i<6;i++){
-    pinMode(motors[i].pwm,OUTPUT);
-    pinMode(motors[i].in1,OUTPUT);
-    pinMode(motors[i].in2,OUTPUT);
-  }
+  pinMode(motors[i].in1,OUTPUT);
+  pinMode(motors[i].in2,OUTPUT);
+  ledcAttach(motors[i].pwm, 20000, 8); // 20kHz, 8-bit resolution
+}
 
   // Servos
-  servoElevator.attach(SERVO_ELEVATOR);
-  servoBottom.attach(SERVO_BOTTOM);
-  servoHuni.attach(SERVO_HUNI);
+  servoElevator.attach(SERVO_ELEVATOR, 500, 2400);
+  servoBottom.attach(SERVO_BOTTOM, 500, 2400);
+  servoHuni.attach(SERVO_HUNI, 500, 2400);
 
   Serial2.println("SLAVE READY");
 }
@@ -44,7 +43,7 @@ void driveMotor(MotorPins m, float power){
   int pwmVal = abs(power)*255;
   if(power>=0){ digitalWrite(m.in1,HIGH); digitalWrite(m.in2,LOW); }
   else { digitalWrite(m.in1,LOW); digitalWrite(m.in2,HIGH); }
-  analogWrite(m.pwm,pwmVal);
+  ledcWrite(m.pwm, pwmVal); // use pin instead of channel
 }
 
 // === Loop ===
