@@ -321,13 +321,50 @@ float medianFilterUltrasonic(int echo_pin) {
 }
 
 /*
- * Read MPU6050 gyroscope Z-axis (yaw rate)
- * Returns angular velocity in degrees/second
+ * Read full IMU data (accelerometer + gyro)
  */
-int16_t readGyroZ(MPU6050& mpu) {
-  int16_t gx, gy, gz;
-  mpu.getRotation(&gx, &gy, &gz);
-  return gz;  // Z-axis is yaw rotation
+void readRawIMU(MPU6050 &mpu, int16_t &ax, int16_t &ay, int16_t &az, int16_t &gx, int16_t &gy, int16_t &gz) {
+  // getMotion6 returns raw accel (AX,AY,AZ) and gyro (GX,GY,GZ)
+  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+}
+
+// Complementary filter: fuse accel + gyro for roll and pitch, and compute filtered gyroZ (rad/s)
+void complementaryFilterUpdate(MPU6050 &mpu, float dt) {
+  int16_t ax_raw, ay_raw, az_raw, gx_raw, gy_raw, gz_raw;
+  readRawIMU(mpu, ax_raw, ay_raw, az_raw, gx_raw, gy_raw, gz_raw);
+
+  // Convert accel to g (assumes default ±2g: 16384 LSB/g). Adjust if different.
+  float ax = ax_raw / 16384.0f;
+  float ay = ay_raw / 16384.0f;
+  float az = az_raw / 16384.0f;
+
+  // Compute accelerometer angles (radians)
+  float roll_acc = atan2f(ay, az);
+  float pitch_acc = atan2f(-ax, sqrtf(ay * ay + az * az));
+
+  // Convert gyro raw to deg/s and apply offsets
+  float gx = (gx_raw - gyro_x_offset) / GYRO_SCALE; // deg/s
+  float gy = (gy_raw - gyro_y_offset) / GYRO_SCALE; // deg/s
+  float gz = (gz_raw - gyro_z_offset) / GYRO_SCALE; // deg/s
+
+  // Convert to rad/s
+  float gx_rad = gx * (PI / 180.0f);
+  float gy_rad = gy * (PI / 180.0f);
+  float gz_rad = gz * (PI / 180.0f);
+
+  if (!imu_initialized) {
+    // Initialize filter with accel angles to avoid large transients
+    comp_roll = roll_acc;
+    comp_pitch = pitch_acc;
+    imu_initialized = true;
+  } else {
+    // Complementary filter update
+    comp_roll = COMP_ALPHA * (comp_roll + gx_rad * dt) + (1.0f - COMP_ALPHA) * roll_acc;
+    comp_pitch = COMP_ALPHA * (comp_pitch + gy_rad * dt) + (1.0f - COMP_ALPHA) * pitch_acc;
+  }
+
+  // Filtered yaw rate (we cannot get absolute yaw without magnetometer; use filtered rate)
+  filtered_gz_rad = gz_rad;
 }
 
 // ============================================================================
@@ -345,7 +382,7 @@ int16_t readGyroZ(MPU6050& mpu) {
  * Uses slip detection: if left and right wheel displacements differ
  * significantly, trusts gyro more than wheel difference for angle
  */
-void kalmanPredict(float dt, int16_t gz, long RL, long RR, long FL, long FR) {
+void kalmanPredict(float dt, float gz_rad, long RL, long RR, long FL, long FR) {
   // Calculate displacement from encoder counts
   float dL = ((RL + FL) / 2.0) * TICK_TO_CM;  // Left side avg displacement
   float dR = ((RR + FR) / 2.0) * TICK_TO_CM;  // Right side avg displacement
@@ -355,19 +392,15 @@ void kalmanPredict(float dt, int16_t gz, long RL, long RR, long FL, long FR) {
   // Slip detection: if difference > 10cm, wheel slipping occurred
   // When slipping, trust gyro more for angle estimate
   if (abs(dL - dR) > 10.0) {
-    dTheta = ((gz - GYRO_OFFSET) / GYRO_SCALE) * (PI / 180.0) * dt;
+    dTheta = gz_rad * dt; // gz_rad is already in rad/s
   }
-
-  // Convert gyro reading to radians/second
-  float gyroZ = (gz - GYRO_OFFSET) / GYRO_SCALE;  // °/s
-  float gyroZ_rad = gyroZ * (PI / 180.0);         // rad/s
 
   // Update state vector using motion model
   X(0) += d * cos(X(2));      // X position update
   X(1) += d * sin(X(2));      // Y position update
-  X(2) += dTheta + gyroZ_rad * dt;  // Theta (heading) update
+  X(2) += dTheta + gz_rad * dt;  // Theta (heading) update
   X(3) = d / dt;              // Linear velocity estimate
-  X(4) = gyroZ_rad;           // Angular velocity estimate
+  X(4) = gz_rad;              // Angular velocity estimate
 
   // Predict covariance matrix (uncertainty grows with time)
   BLA::Matrix<5,5> F = BLA::Identity<5,5>();
@@ -524,7 +557,8 @@ void debugPrintAllSensors(MPU6050& mpu) {
   float rpm_FR = (count_FR / (float)MAIN_TICKS_PER_REV) * 60.0;
 
   // Read gyro
-  int16_t gz = readGyroZ(mpu);
+  int16_t ax_raw, ay_raw, az_raw, gx_raw, gy_raw, gz_raw;
+  readRawIMU(mpu, ax_raw, ay_raw, az_raw, gx_raw, gy_raw, gz_raw);
 
   // Read ultrasonic sensors
   float dist_front = medianFilterUltrasonic(ECHO_FRONT);
@@ -553,8 +587,12 @@ void debugPrintAllSensors(MPU6050& mpu) {
   Serial.printf("ULTRASONIC: Front=%.1f cm, Right=%.1f cm, Left=%.1f cm, Rear=%.1f cm\n",
                 dist_front, dist_right, dist_left, dist_rear);
   
-  Serial.printf("GYRO_Z: %d (offset-corrected: %.2f °/s)\n",
-                gz, (gz - GYRO_OFFSET) / GYRO_SCALE);
+  float gz_deg = (gz_raw - gyro_z_offset) / GYRO_SCALE;
+  Serial.printf("GYRO_Z_RAW: %d (offset-corrected: %.2f °/s)\n",
+                gz_raw, gz_deg);
+
+  Serial.printf("IMU: Roll=%.2f°, Pitch=%.2f°, Filtered_GyroZ=%.2f °/s\n",
+                comp_roll * 180.0 / PI, comp_pitch * 180.0 / PI, filtered_gz_rad * 180.0 / PI);
   
   Serial.printf("COMMANDS: Forward=%.2f, Strafe=%.2f, Turn=%.2f, Elevator_Up=%d, Elevator_Down=%d\n",
                 cmd_axis_5, cmd_axis_2, cmd_axis_0, cmd_button_13, cmd_button_12);
@@ -708,12 +746,24 @@ void core1SensorTask(void* pvParameters) {
       continue;
     }
 
-    // Read gyro
-    int16_t gz = readGyroZ(mpu);
+    // IMU: update complementary filter (roll/pitch) and filtered yaw rate
+    complementaryFilterUpdate(mpu, dt);
+
+    // Safety: if robot is tipping (large roll/pitch), stop immediately and skip motion
+    if (fabs(comp_roll) > 0.52f || fabs(comp_pitch) > 0.52f) { // ~30 degrees
+      Serial.println("[SAFETY] Excessive tilt detected! Stopping motors.");
+      // Emergency stop - send zero movement command to slave
+      sendCommandToSlave(0, 0, 0, 0, 0, 0, 0);
+      // Reset encoder counters and skip navigation this cycle
+      count_RL = count_RR = count_FL = count_FR = 0;
+      last_time = now;
+      delay(10);
+      continue;
+    }
 
     // ========== KALMAN PREDICTION ==========
-    // Update position estimate based on odometry and gyro
-    kalmanPredict(dt, gz, count_RL, count_RR, count_FL, count_FR);
+    // Update position estimate based on odometry and filtered gyro (rad/s)
+    kalmanPredict(dt, filtered_gz_rad, count_RL, count_RR, count_FL, count_FR);
 
     // Reset encoder counts for next iteration
     count_RL = 0;
