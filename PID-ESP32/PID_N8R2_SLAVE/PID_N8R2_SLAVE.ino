@@ -539,8 +539,17 @@ void loop() {
   driveServo();
 
   // Small delay to prevent CPU hogging
-  delay(5);
+  delay(3);
 }
+
+// ============================================================================
+
+void sagonileri() {
+    setMotorSpeed(FL_IN1, FL_IN2, FL_PWM, 1.0);   // Front Left stop
+    setMotorSpeed(FR_IN1, FR_IN2, FR_PWM, 0.0);   // Front Right Stop
+    setMotorSpeed(RL_IN1, RL_IN2, RL_PWM, 0.0);   // Rear Left Stop
+    setMotorSpeed(RR_IN1, RR_IN2, RR_PWM, 1.0);   // Rear Right Forward
+    }
 
 // ============================================================================
 // END OF CODE
