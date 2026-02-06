@@ -1,6 +1,6 @@
 // 192.168.4.1
 // MECHATAK - 
-// MECHATAK - 
+
 
 
 #define PROBOT_WIFI_AP_PASSWORD "kayra123"
@@ -8,7 +8,6 @@
 #define PROBOT_WIFI_AP_CHANNEL 3
 
 #include <probot.h>
-#include <probot/devices/servo/servo.hpp>
 
 
 const int FL_PWM = 15;
@@ -118,17 +117,17 @@ analogWrite(RR_PWM, pwm);
 
 void sagslide(int pwm){
 
-digitalWrite(FL_IN1, HIGH);
-digitalWrite(FL_IN2, LOW);
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
 
 digitalWrite(FR_IN1, LOW);
 digitalWrite(FR_IN2, HIGH);
 
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, LOW);
+
 digitalWrite(RL_IN1, LOW);
 digitalWrite(RL_IN2, HIGH);
-
-digitalWrite(RR_IN1, HIGH);
-digitalWrite(RR_IN2, LOW);
 
 analogWrite(FL_PWM, pwm);
 analogWrite(FR_PWM, pwm);
@@ -139,17 +138,17 @@ analogWrite(RR_PWM, pwm);
 
 void solslide(int pwm){
 
-digitalWrite(FL_IN1, LOW);
-digitalWrite(FL_IN2, HIGH);
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, HIGH);
 
 digitalWrite(FR_IN1, HIGH);
 digitalWrite(FR_IN2, LOW);
 
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, LOW);
+
 digitalWrite(RL_IN1, LOW);
 digitalWrite(RL_IN2, HIGH);
-
-digitalWrite(RR_IN1, HIGH);
-digitalWrite(RR_IN2, LOW);
 
 analogWrite(FL_PWM, pwm);
 analogWrite(FR_PWM, pwm);
@@ -163,14 +162,14 @@ void sol360(int pwm){
 digitalWrite(FL_IN1, HIGH);
 digitalWrite(FL_IN2, LOW);
 
-digitalWrite(FR_IN1, HIGH);
-digitalWrite(FR_IN2, LOW);
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, HIGH);
 
 digitalWrite(RL_IN1, HIGH);
 digitalWrite(RL_IN2, LOW);
 
-digitalWrite(RR_IN1, HIGH);
-digitalWrite(RR_IN2, LOW);
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, HIGH);
 
 analogWrite(FL_PWM, pwm);
 analogWrite(FR_PWM, pwm);
