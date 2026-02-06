@@ -1,16 +1,11 @@
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
+
 // 192.168.4.1
-=======
+
 // MECHATAK - SIMPLE MOTOR TEST (NO ProBot complications)
->>>>>>> Stashed changes
-=======
 // MECHATAK - SIMPLE MOTOR TEST (NO ProBot complications)
->>>>>>> Stashed changes
+
 #define PROBOT_WIFI_AP_PASSWORD "kayra123"
 #define PROBOT_WIFI_AP_SSID "MECHATAK"
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 #define PROBOT_WIFI_AP_CHANNEL 3
 #include <probot.h>
 
