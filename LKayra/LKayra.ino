@@ -11,6 +11,8 @@
 #include <probot/command/examples/mecanum_drive.hpp>
 #include <probot/devices/motors/boardoza_vnh5019_motor_controller.hpp>
 
+
+
 const int FL_PWM = 15;
 const int FL_IN1 = 16;
 const int FL_IN2 = 17;
@@ -24,12 +26,13 @@ const int RL_IN1 = 8;
 const int RL_IN2 = 9;
 
 const int RR_PWM = 12;
-const int RR_IN1 = 11;
-const int RR_IN2 = 13;
+const int RR_IN1 = 13;
+const int RR_IN2 = 11;
 
 const int E_PWM = 1;
 const int E_IN1 = 2;
 const int E_IN2 = 42;
+
 
 
 void robotInit() {
@@ -55,31 +58,108 @@ pinMode(E_IN1, OUTPUT);
 pinMode(E_IN2, OUTPUT);
 
 
-
 }
 
-void  teleopLoop() {
-  // put your main code here, to run repeatedly:
-
-
-
-
-}
 
 void autonomousInit() {
   // Otonom başladığında bir kez çalışır
+
 }
 
 void autonomousLoop() {
   // Otonom süresince sürekli çalışır
+  ileri(200);
+  delay(500);
+  anidur();
+  delay(500);
+  solon();
+  delay(500);
+  anidur();
+  delay(500);
+  sagon();
+  delay(500);
+  anidur();
 }
+
 
 void teleopInit() {
   // Teleop (manuel kontrol) başladığında bir kez çalışır
+
 }
+
+void  teleopLoop() {
+  // Manuel modda sürekli.
+auto js = probot::io::joystick_api::makeDefault();
+
+
+  // Her döngüde buffer'ı temizle, yoksa veriler birikir
+  probot::telemetry::clear();
+
+  // Başlık
+  probot::telemetry::println("=== JOYSTICK TEST ===");
+
+  // Sol stick
+  probot::telemetry::printf("Sol Stick:  X=%.2f  Y=%.2f\n",
+                            js.getLeftX(), js.getLeftY());
+
+  // Sağ stick
+  probot::telemetry::printf("Sag Stick:  X=%.2f  Y=%.2f\n",
+                            js.getRightX(), js.getRightY());
+
+  // Tetikler
+  probot::telemetry::printf("Tetikler:   LT=%.2f  RT=%.2f\n",
+                            js.getLeftTriggerAxis(), js.getRightTriggerAxis());
+
+  // Butonlar - basılı olanları göster
+  probot::telemetry::print("Butonlar:   ");
+  if (js.getA()) probot::telemetry::print("A ");
+  if (js.getB()) probot::telemetry::print("B ");
+  if (js.getX()) probot::telemetry::print("X ");
+  if (js.getY()) probot::telemetry::print("Y ");
+  if (js.getLB()) probot::telemetry::print("LB ");
+  if (js.getRB()) probot::telemetry::print("RB ");
+  if (js.getStart()) probot::telemetry::print("START ");
+  if (js.getBack()) probot::telemetry::print("BACK ");
+  probot::telemetry::println("");
+
+
+
+  // D-Pad (POV)
+  int pov = js.getPOV();
+  probot::telemetry::print("D-Pad:      ");
+  if (pov == -1) {
+    probot::telemetry::println("-");
+  } else if (pov == 0) {
+    probot::telemetry::println("YUKARI");
+  } else if (pov == 90) {
+    probot::telemetry::println("SAG");
+  } else if (pov == 180) {
+    probot::telemetry::println("ASAGI");
+  } else if (pov == 270) {
+    probot::telemetry::println("SOL");
+  } else {
+    probot::telemetry::printf("%d derece\n", pov);
+  }
+
+
+  // Sequence numarası
+  probot::telemetry::printf("Seq: %lu\n", static_cast<unsigned long>(js.getSeq()));
+
+
+
+
+if 
+
+  // 10 Hz güncelleme (100ms)
+  delay(100);
+
+
+}
+
 
 void robotEnd() {
   // Robot durdurulduğunda çalışır
+delay(34);
 fanidur();
 
 }
@@ -360,5 +440,6 @@ analogWrite(FR_PWM, 0);
 analogWrite(RL_PWM, 0);
 analogWrite(RR_PWM, 0);
 analogWrite(E_PWM, 0);
+
 
 }
