@@ -1,5 +1,9 @@
-// http://192.168.4.1
 #define PROBOT_WIFI_AP_PASSWORD "kayra123"
+#define PROBOT_WIFI_AP_SSID "MECHATAK"
+#define PROBOT_WIFI_AP_CHANNEL 3
+#include <probot.h>
+
+// http://192.168.4.1
 
 #include <probot.h>
 #include <probot/io/joystick_api.hpp>
