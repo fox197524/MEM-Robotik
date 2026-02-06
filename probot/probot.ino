@@ -1,10 +1,15 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 // 192.168.4.1
+=======
+// MECHATAK - SIMPLE MOTOR TEST (NO ProBot complications)
+>>>>>>> Stashed changes
 =======
 // MECHATAK - SIMPLE MOTOR TEST (NO ProBot complications)
 >>>>>>> Stashed changes
 #define PROBOT_WIFI_AP_PASSWORD "kayra123"
 #define PROBOT_WIFI_AP_SSID "MECHATAK"
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 #define PROBOT_WIFI_AP_CHANNEL 3
 #include <probot.h>
@@ -134,6 +139,55 @@ void teleopLoop() {
                 topLidOpen ? "OPEN" : "CLOSED");
 
   delay(20);
+=======
+
+#include <probot.h>
+
+// YOUR PINS
+const int FL_IN1 = 16, FL_IN2 = 17, FL_ENA = 15;
+const int FR_IN1 = 5,  FR_IN2 = 6,  FR_ENA = 4;  
+const int RL_IN1 = 8,  RL_IN2 = 9,  RL_ENA = 7;
+const int RR_IN1 = 13, RR_IN2 = 11, RR_ENA = 12;
+const int EL_IN1 = 38, EL_IN2 = 39, EL_ENA = 18;
+
+void robotInit() {
+  Serial.begin(115200);
+  delay(500);
+  
+  // Setup all pins
+  pinMode(FL_IN1, OUTPUT); pinMode(FL_IN2, OUTPUT); pinMode(FL_ENA, OUTPUT);
+  pinMode(FR_IN1, OUTPUT); pinMode(FR_IN2, OUTPUT); pinMode(FR_ENA, OUTPUT);
+  pinMode(RL_IN1, OUTPUT); pinMode(RL_IN2, OUTPUT); pinMode(RL_ENA, OUTPUT);
+  pinMode(RR_IN1, OUTPUT); pinMode(RR_IN2, OUTPUT); pinMode(RR_ENA, OUTPUT);
+  pinMode(EL_IN1, OUTPUT); pinMode(EL_IN2, OUTPUT); pinMode(EL_ENA, OUTPUT);
+  
+  Serial.println("\n🚀 MECHATAK SIMPLE MOTOR TEST");
+  Serial.println("📡 WiFi: MECHATAK (kayra123)");
+  Serial.println("✅ ALL PINS READY - 3s per test");
+}
+
+void motorForward(int in1, int in2, int ena, float speed = 0.6) {
+  digitalWrite(in1, HIGH); digitalWrite(in2, LOW);
+  analogWrite(ena, speed * 255);
+}
+
+void motorBackward(int in1, int in2, int ena, float speed = 0.6) {
+  digitalWrite(in1, LOW); digitalWrite(in2, HIGH);
+  analogWrite(ena, speed * 255);
+}
+
+void motorStop(int in1, int in2, int ena) {
+  digitalWrite(in1, LOW); digitalWrite(in2, LOW);
+  analogWrite(ena, 0);
+}
+
+void teleopInit() {
+  Serial.println("❌ TELEOP DISABLED");
+}
+
+void teleopLoop() {
+  // Empty - no joystick
+>>>>>>> Stashed changes
 }
 =======
 
