@@ -118,35 +118,111 @@ analogWrite(RR_PWM, pwm);
 
 void sagslide(int pwm){
 
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, LOW);
+
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, HIGH);
+
+digitalWrite(RL_IN1, LOW);
+digitalWrite(RL_IN2, HIGH);
+
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
+
+analogWrite(FL_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(RR_PWM, pwm);
 
 }
 
 void solslide(int pwm){
 
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, HIGH);
 
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, LOW);
+
+digitalWrite(RL_IN1, LOW);
+digitalWrite(RL_IN2, HIGH);
+
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
+
+analogWrite(FL_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(RR_PWM, pwm);
 
 }
 
 void sol360(int pwm){
 
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, LOW);
+
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, LOW);
+
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, LOW);
+
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
+
+analogWrite(FL_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(RR_PWM, pwm);
 
 }
 
 void sag360(int pwm){
 
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, LOW);
+
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, LOW);
+
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, LOW);
+
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
+
+analogWrite(FL_PWM, pwm);
+analogWrite(FR_PWM, pwm);
+analogWrite(RL_PWM, pwm);
+analogWrite(RR_PWM, pwm);
 
 }
 
 void dur(){
 
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, LOW);
+
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, LOW);
+
 digitalWrite(RL_IN1, LOW);
 digitalWrite(RL_IN2, LOW);
 
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, LOW);
+
+analogWrite(FL_PWM, 0);
+analogWrite(FR_PWM, 0);
 analogWrite(RL_PWM, 0);
+analogWrite(RR_PWM, 0);
 
 }
 
 void anidur(){
+
 digitalWrite(FL_IN1, HIGH);
 digitalWrite(FL_IN2, HIGH);
 
