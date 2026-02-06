@@ -124,3 +124,9 @@ void autonomousLoop() {
   mecanum.drivePower(vx, vy, omega);
   delay(20);
 }
+
+void otonom(){
+
+
+
+}
