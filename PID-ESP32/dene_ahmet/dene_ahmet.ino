@@ -22,7 +22,7 @@ int button14 = 0; // ELEVATOR DOWN
 float fr_sens = 1.0;
 float turnSpin_sens = 1.0;
 int minSpeed = 128;
-int maxSpeed = 255;
+int maxSpeed = 200;
 
 int speed = 255;
 
@@ -32,6 +32,9 @@ const int FL_PWM = 15, FL_IN1 = 16, FL_IN2 = 17;
 const int FR_PWM = 4, FR_IN1 = 5, FR_IN2 = 6;
 const int EL_PWM = 18, EL_IN1 = 38, EL_IN2 = 39;
 const int ER_PWM = 1, ER_IN1 = 2, ER_IN2 = 42;
+
+const int E_LID = 41;
+const int B_LID = 14;
 
 void setMotor(int in1, int in2, int pwm, int dir, int speed) {
   if (dir == -1) {
