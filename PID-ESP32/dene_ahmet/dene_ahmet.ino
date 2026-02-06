@@ -227,7 +227,7 @@ void loop() {
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
     Serial.println("360 RIGHT:" + String(speed));
   }
-
+/*
   else if (button13 == 1) {
     setMotor(ER_IN1, ER_IN2, ER_PWM, 1, 255);
     setMotor(EL_IN1, EL_IN2, EL_PWM, -1, 255);
@@ -239,6 +239,7 @@ void loop() {
     setMotor(EL_IN1, EL_IN2, EL_PWM, +1, 255);
     Serial.println("ELEVATOR DOWN");
   }
+*/
 
   else {
     Serial.println("STOPPED");
