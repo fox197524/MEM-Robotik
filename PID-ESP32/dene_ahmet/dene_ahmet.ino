@@ -19,8 +19,8 @@ float axis3 = 0.0; // MOVE RIGHT-LEFT
 int button13 = 0; // ELEVATOR UP
 int button14 = 0; // ELEVATOR DOWN
 
-float fr_sens = 1.0;
-float turnSpin_sens = 1.0;
+float fr_sens = 0.5;
+float turnSpin_sens = 0.5;
 int minSpeed = 128;
 int maxSpeed = 200;
 
