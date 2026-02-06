@@ -64,6 +64,8 @@ pinMode(E_IN2, OUTPUT);
 void autonomousInit() {
   // Otonom başladığında bir kez çalışır
 
+
+
 }
 
 void autonomousLoop() {
@@ -148,15 +150,71 @@ auto js = probot::io::joystick_api::makeDefault();
 
 
 
-if(js.getA == 1){
-
-
-
+//Bu bölümü komple uyumlu hale getir
+  // 2. Drive Forward (Trigger 5)
+  else if (axis5 > -0.995) {  // or inside these conditions
+    //Serial.println("FORWARD");
+    speed = getSpeedTrig(axis5);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
+    setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
+    setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
+    Serial.println("FORWARD:" + String(speed));
   }
-    else if(){
+
+  // 3. Drive Reverse (Trigger 2)
+  else if (axis2 > -0.995) {
+    //Serial.println("REVERSE");
+    speed = getSpeedTrig(axis2);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);
+    setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
+    setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
+    Serial.println("REVERSE:" + String(speed));
+  }
 
 
-    }
+  else if (axis0 > 0.040) {
+    //Serial.println("MOVE RIGHT");
+    speed = getSpeedJoy(axis0);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
+    setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
+    setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
+    Serial.println("MOVE RIGHT:" + String(speed));
+  }
+
+  else if (axis0 < -0.040) {
+    //Serial.println("MOVE LEFT");
+    speed = getSpeedJoy(axis0);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
+    setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);
+    setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
+    Serial.println("MOVE LEFT:" + String(speed));
+  }
+
+  // 4. Spin Left (Stick pushed far left)
+  else if (axis3 < -0.045) {
+    //Serial.println("360 LEFT");
+    speed = getSpeedJoy(axis3);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);  // Left side backwards
+    setMotor(FL_IN1, FL_IN2, FL_PWM, -1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);  // Right side forwards
+    setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
+    Serial.println("360 LEFT:" + String(speed));
+  }
+
+  // 5. Spin Right (Stick pushed far right)
+  else if (axis3 > 0.045) {
+    //Serial.println("360 RIGHT");
+    speed = getSpeedJoy(axis3);
+    setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);  // Left side forwards
+    setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
+    setMotor(RR_IN1, RR_IN2, RR_PWM, -1, speed);  // Right side backwards
+    setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
+    Serial.println("360 RIGHT:" + String(speed));
+  }
 
   // 10 Hz güncelleme (100ms)
   delay(100);
@@ -413,7 +471,7 @@ analogWrite(E_PWM, pwma);
 void elit(){
 
   analogWrite(RL_PWM, 255);
-  
+
 }
 
 void belit(){
@@ -469,3 +527,7 @@ analogWrite(E_PWM, 0);
 
 
 }
+
+
+//veeee
+//son
