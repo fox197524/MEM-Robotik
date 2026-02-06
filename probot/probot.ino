@@ -38,10 +38,10 @@ struct MotorPins {
   int ina, inb, pwm, ena, enb;
 };
 
-static constexpr MotorPins PINS_FL{15, 16, 17, -1, -1};
-static constexpr MotorPins PINS_FR{4, 5, 6, -1, -1};
-static constexpr MotorPins PINS_RL{7, 8, 9, -1, -1};
-static constexpr MotorPins PINS_RR{12, 28, 29, -1, -1};
+static constexpr MotorPins PINS_FL{FL_IN1, FL_IN2, FL_PWM, -1, -1};
+static constexpr MotorPins PINS_FR{FR_IN1, FR_IN2, FR_PWM, -1, -1};
+static constexpr MotorPins PINS_RL{RL_IN1, RL_IN2, RL_PWM, -1, -1};
+static constexpr MotorPins PINS_RR{RR_IN1, RR_IN2, RR_PWM, -1, -1};
 
 static probot::motor::BoardozaVNH5019MotorController drvFL(PINS_FL.ina, PINS_FL.inb, PINS_FL.pwm, PINS_FL.ena, PINS_FL.enb);
 static probot::motor::BoardozaVNH5019MotorController drvFR(PINS_FR.ina, PINS_FR.inb, PINS_FR.pwm, PINS_FR.ena, PINS_FR.enb);
