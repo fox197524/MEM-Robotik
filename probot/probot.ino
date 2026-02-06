@@ -97,7 +97,32 @@ void teleopLoop() {
   float vx = js.getLeftY();             // Forward/Backward (mapped to Left Y-axis)
   float vy = js.getLeftX();             // Left/Right Slide (mapped to Left X-axis, user requested axis 2)
   float omega = js.getRightX();         // 360 Turning (mapped to Right X-axis, user requested axis 0)
-  mecanum.drivePower(vx, vy, omega);
+  // Read raw trigger axes (L2/R2) if available and use them to spin all motors
+  float axis4 = 0.0f;
+  float axis5 = 0.0f;
+  // Many joystick implementations expose triggers as axes 4 and 5.
+  // Use getRawAxis if available in the joystick API; if not, these calls
+  // will cause a compile error and we'll need to adjust to the library.
+  axis4 = js.getRawAxis(4);
+  axis5 = js.getRawAxis(5);
+
+  // If R2 (axis5) pressed -> spin all motors forward; L2 (axis4) -> spin backward
+  const float TRIGGER_DEADZONE = 0.05f;
+  if (axis5 > TRIGGER_DEADZONE) {
+    float p = axis5; // scale power by trigger value
+    drvFL.setPower(p);
+    drvFR.setPower(p);
+    drvRL.setPower(p);
+    drvRR.setPower(p);
+  } else if (axis4 > TRIGGER_DEADZONE) {
+    float p = -axis4;
+    drvFL.setPower(p);
+    drvFR.setPower(p);
+    drvRL.setPower(p);
+    drvRR.setPower(p);
+  } else {
+    mecanum.drivePower(vx, vy, omega);
+  }
 
   unsigned long currentMillis = millis();
   float elevatorMotorCommand = 0.0f; // This will be the final power for drvEL
