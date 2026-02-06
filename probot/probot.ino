@@ -92,105 +92,67 @@ void teleopInit() {
 void teleopLoop() {
   auto js = probot::io::joystick_api::makeDefault();
 
-  // Mecanum drive - PS Controller Mapping
-  // axis 5 for forward, axis 4 for backward, axis 2 for left/right slide, axis 0 for rotation
-  float vx = js.getLeftY();             // Forward/Backward (mapped to Left Y-axis)
-  float vy = js.getLeftX();             // Left/Right Slide (mapped to Left X-axis, user requested axis 2)
-  float omega = js.getRightX();         // 360 Turning (mapped to Right X-axis, user requested axis 0)
+  // --- Mecanum drive mapping ---
+  float omega = js.getAxis(0);   // Left stick X = rotation (360° turning)
+  float vy    = js.getAxis(2);   // Axis 2 = left/right drift (strafe)
+
+  // RT forward, LT backward
+  float rt = js.getTriggerRight(); // RT
+  float lt = js.getTriggerLeft();  // LT
+  float vx = rt - lt;              // net forward/backward
+
   mecanum.drivePower(vx, vy, omega);
 
+  // --- Elevator control ---
   unsigned long currentMillis = millis();
-  float elevatorMotorCommand = 0.0f; // This will be the final power for drvEL
+  float elevatorMotorCommand = 0.0f;
 
-  // --- Handle Elevator Door (Button 6) ---
-  // If button 6 is pressed, or if a door pulse is active
+  // --- Handle Elevator Door (Button 6 pulse) ---
   if (js.getRawButton(6)) {
-    if (elevatorDoorPulseStart == 0) { // Start a new pulse
+    if (elevatorDoorPulseStart == 0) {
       elevatorDoorPulseStart = currentMillis;
-      Serial.println("[ELEVATOR] Kapi aciliyor/kapaniyor (darbe)");
+      Serial.println("[ELEVATOR] Door pulse started.");
     }
-    // If button 6 is held, keep the motor at door pulse power
     elevatorMotorCommand = ELEVATOR_DOOR_PULSE_POWER;
   } else {
-    // If button 6 is released, and a pulse was active, stop it after duration
-    if (elevatorDoorPulseStart != 0 && (currentMillis - elevatorDoorPulseStart) < ELEVATOR_DOOR_PULSE_DURATION_MS) {
-      elevatorMotorCommand = ELEVATOR_DOOR_PULSE_POWER; // Continue pulse
+    if (elevatorDoorPulseStart != 0 &&
+        (currentMillis - elevatorDoorPulseStart) < ELEVATOR_DOOR_PULSE_DURATION_MS) {
+      elevatorMotorCommand = ELEVATOR_DOOR_PULSE_POWER;
     } else {
-      elevatorDoorPulseStart = 0; // Reset pulse if not active or duration passed
+      elevatorDoorPulseStart = 0;
     }
   }
 
-  // --- Handle Elevator Up (Button 13) ---
-  if (js.getRawButton(13) && elevatorDoorPulseStart == 0) { // Only if door is not active
-    if (elevatorUpActiveStart == 0) { // Button just pressed, start tracking
-      elevatorUpActiveStart = currentMillis;
-      Serial.println("[ELEVATOR] Yukari baslatildi.");
-    }
-
-    // Calculate elapsed time since last check, or since button press
-    unsigned long durationSinceLastCheck = currentMillis - elevatorUpActiveStart;
-
+  // --- Handle Elevator Up (BTN13) ---
+  if (js.getRawButton(13) && elevatorDoorPulseStart == 0) {
     if (elevatorUpRemainingBudget > 0) {
       elevatorMotorCommand = ELEVATOR_SPEED;
-      elevatorUpRemainingBudget -= durationSinceLastCheck; // Deduct from budget
-      if (elevatorUpRemainingBudget < 0) elevatorUpRemainingBudget = 0; // Cap at 0
+      elevatorUpRemainingBudget -= 20; 
     } else {
-      Serial.println("[ELEVATOR] Yukari - Butce tukendi.");
-    }
-    elevatorUpActiveStart = currentMillis; // Reset for next iteration
-  } else { // Button 13 not pressed
-    if (elevatorUpActiveStart != 0) { // If it was moving up and button released
-      unsigned long durationSinceLastCheck = currentMillis - elevatorUpActiveStart;
-      elevatorUpRemainingBudget -= durationSinceLastCheck;
-      if (elevatorUpRemainingBudget < 0) elevatorUpRemainingBudget = 0;
-      Serial.printf("[ELEVATOR] Yukari - Buton birakildi. Kalan butce: %.0f ms\n", elevatorUpRemainingBudget);
-      elevatorUpActiveStart = 0; // Reset active start time
+      Serial.println("[ELEVATOR] Up budget exhausted.");
     }
   }
 
-  // --- Handle Elevator Down (Button 14) ---
-  if (js.getRawButton(14) && elevatorDoorPulseStart == 0) { // Only if door is not active
-    if (elevatorDownActiveStart == 0) { // Button just pressed, start tracking
-      elevatorDownActiveStart = currentMillis;
-      Serial.println("[ELEVATOR] Asagi baslatildi.");
-    }
-
-    unsigned long durationSinceLastCheck = currentMillis - elevatorDownActiveStart;
-
+  // --- Handle Elevator Down (BTN14) ---
+  else if (js.getRawButton(14) && elevatorDoorPulseStart == 0) {
     if (elevatorDownRemainingBudget > 0) {
-      elevatorMotorCommand = -ELEVATOR_SPEED; // Negative for down
-      elevatorDownRemainingBudget -= durationSinceLastCheck; // Deduct from budget
-      if (elevatorDownRemainingBudget < 0) elevatorDownRemainingBudget = 0; // Cap at 0
+      elevatorMotorCommand = -ELEVATOR_SPEED;
+      elevatorDownRemainingBudget -= 20;
     } else {
-      Serial.println("[ELEVATOR] Asagi - Butce tukendi.");
-    }
-    elevatorDownActiveStart = currentMillis; // Reset for next iteration
-  } else { // Button 14 not pressed
-    if (elevatorDownActiveStart != 0) { // If it was moving down and button released
-      unsigned long durationSinceLastCheck = currentMillis - elevatorDownActiveStart;
-      elevatorDownRemainingBudget -= durationSinceLastCheck;
-      if (elevatorDownRemainingBudget < 0) elevatorDownRemainingBudget = 0;
-      Serial.printf("[ELEVATOR] Asagi - Buton birakildi. Kalan butce: %.0f ms\n", elevatorDownRemainingBudget);
-      elevatorDownActiveStart = 0; // Reset active start time
+      Serial.println("[ELEVATOR] Down budget exhausted.");
     }
   }
 
-  // Apply the final elevator motor command unless a door pulse is active and not finished
-  if (elevatorDoorPulseStart != 0 && (currentMillis - elevatorDoorPulseStart) < ELEVATOR_DOOR_PULSE_DURATION_MS) {
-    // Door pulse is ongoing, elevatorMotorCommand is already set by door logic
-  } else {
-    // If no active door pulse, and no up/down buttons pressed (or budget exhausted), stop motor
-    if (!js.getRawButton(13) && !js.getRawButton(14)) {
-      elevatorMotorCommand = 0.0f;
-    }
-  }
-  
+  // --- Apply final elevator command ---
   drvEL.setPower(elevatorMotorCommand);
 
   Serial.printf("[Mecanum] vx=%.2f vy=%.2f w=%.2f | "
                 "[Elevator] pwr=%.2f | UpB:%.0f DownB:%.0f\n",
-                vx, vy, omega, drvEL.getPower(), elevatorUpRemainingBudget, elevatorDownRemainingBudget);
-  }
+                vx, vy, omega, drvEL.getPower(),
+                elevatorUpRemainingBudget, elevatorDownRemainingBudget);
+
+  delay(20);
+}
 
 void autonomousInit() {
   Serial.println("[MecanumDriveDemo] autonomousInit: kare rota");
