@@ -33,7 +33,7 @@ const int E_PWM = 1;
 const int E_IN1 = 2;
 const int E_IN2 = 42;
 
-
+using Scheduler = probot::command::Scheduler;
 
 void robotInit() {
   // put your setup code here, to run once:
@@ -112,10 +112,10 @@ auto js = probot::io::joystick_api::makeDefault();
 
   // Butonlar - basılı olanları göster
   probot::telemetry::print("Butonlar:   ");
-  if (js.getA()) probot::telemetry::print("A ");
-  if (js.getB()) probot::telemetry::print("B ");
-  if (js.getX()) probot::telemetry::print("X ");
-  if (js.getY()) probot::telemetry::print("Y ");
+  if (js.getA()) probot::telemetry::print("CARPI ");
+  if (js.getB()) probot::telemetry::print("YUVARLAK ");
+  if (js.getX()) probot::telemetry::print("KARE ");
+  if (js.getY()) probot::telemetry::print("UCGEN ");
   if (js.getLB()) probot::telemetry::print("LB ");
   if (js.getRB()) probot::telemetry::print("RB ");
   if (js.getStart()) probot::telemetry::print("START ");
@@ -148,7 +148,15 @@ auto js = probot::io::joystick_api::makeDefault();
 
 
 
-if 
+if(js.getA == 1){
+
+
+
+  }
+    else if(){
+
+
+    }
 
   // 10 Hz güncelleme (100ms)
   delay(100);
@@ -386,14 +394,31 @@ analogWrite(RL_PWM, 255);
 
 void eup(int pwma){
 
+digitalWrite(E_IN1, HIGH);
+digitalWrite(E_IN2, LOW);
+
+analogWrite(E_PWM, pwma);
 
 }
 
 void edown(int pwma){
 
+digitalWrite(E_IN1, LOW);
+digitalWrite(E_IN2, HIGH);
+
+analogWrite(E_PWM, pwma);
 
 }
 
+void elit(){
+
+  analogWrite(RL_PWM, 255);
+}
+
+void belit(){
+
+  analogWrite(RL_PWM, 255);
+}
 
 void fanidur(){
 
