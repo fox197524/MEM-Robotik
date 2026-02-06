@@ -1,14 +1,15 @@
 // 192.168.4.1
-// MECHATAK - 
-
-
+// MECHATAK - Final versiyon kodu
 
 #define PROBOT_WIFI_AP_PASSWORD "kayra123"
 #define PROBOT_WIFI_AP_SSID "MECHATAK"
 #define PROBOT_WIFI_AP_CHANNEL 3
 
 #include <probot.h>
-
+#include <probot/io/joystick_api.hpp>
+#include <probot/command.hpp>  // Includes scheduler, command, subsystem, command_group
+#include <probot/command/examples/mecanum_drive.hpp>
+#include <probot/devices/motors/boardoza_vnh5019_motor_controller.hpp>
 
 const int FL_PWM = 15;
 const int FL_IN1 = 16;
@@ -31,7 +32,7 @@ const int E_IN1 = 2;
 const int E_IN2 = 42;
 
 
-void setup() {
+void robotInit() {
   // put your setup code here, to run once:
 pinMode(FL_PWM, OUTPUT);
 pinMode(FL_IN1, OUTPUT);
@@ -57,20 +58,31 @@ pinMode(E_IN2, OUTPUT);
 
 }
 
-void loop() {
+void  teleopLoop() {
   // put your main code here, to run repeatedly:
-if(){
 
-
-}
-else if(){
-
-}
 
 
 
 }
 
+void autonomousInit() {
+  // Otonom başladığında bir kez çalışır
+}
+
+void autonomousLoop() {
+  // Otonom süresince sürekli çalışır
+}
+
+void teleopInit() {
+  // Teleop (manuel kontrol) başladığında bir kez çalışır
+}
+
+void robotEnd() {
+  // Robot durdurulduğunda çalışır
+fanidur();
+
+}
 
 
 void ileri(int pwm){
@@ -302,3 +314,51 @@ void edown(int pwma){
 
 }
 
+
+void fanidur(){
+
+digitalWrite(FL_IN1, HIGH);
+digitalWrite(FL_IN2, HIGH);
+
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, HIGH);
+
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, HIGH);
+
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, HIGH);
+
+digitalWrite(E_IN1, HIGH);
+digitalWrite(E_IN2, HIGH);
+
+analogWrite(FL_PWM, 255);
+analogWrite(FR_PWM, 255);
+analogWrite(RL_PWM, 255);
+analogWrite(RR_PWM, 255);
+analogWrite(E_PWM, 255);
+
+delay(30);
+
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, LOW);
+
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, LOW);
+
+digitalWrite(RL_IN1, LOW);
+digitalWrite(RL_IN2, LOW);
+
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, LOW);
+
+digitalWrite(E_IN1, LOW);
+digitalWrite(E_IN2, LOW);
+
+analogWrite(FL_PWM, 0);
+analogWrite(FR_PWM, 0);
+analogWrite(RL_PWM, 0);
+analogWrite(RR_PWM, 0);
+analogWrite(E_PWM, 0);
+
+}
