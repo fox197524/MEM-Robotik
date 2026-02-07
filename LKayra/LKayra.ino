@@ -181,6 +181,7 @@ belit(0);
 
 
 
+
   // 1. İLERİ (Sağ Tetik - RT)
   if (js.getRightTriggerAxis() > 0.05) {
     speed = map(js.getRightTriggerAxis() * 100, 0, 100, 0, 255);
@@ -225,16 +226,16 @@ belit(0);
 
   // HİÇBİRİNE BASILMIYORSA DUR
   else {
-    dur();
+    anidur();
     probot::telemetry::clear();
     probot::telemetry::println("DURUM: BEKLEMEDE");
   }
 
   delay(20); // ESP32'yi ve WiFi trafiğini rahatlatmak için
-
+/*
 //Bu bölümü komple uyumlu hale getir
-  // 2. Drive Forward (Trigger 5)
-  else if (js.getRightTriggerAxis > -0.995) {  // or inside these conditions
+*  // 2. Drive Forward (Trigger 5)
+*  else if (js.getRightTriggerAxis > -0.995) {  // or inside these conditions
     //Serial.println("FORWARD");
     speed = js.getRightTriggerAxis(ileriaxis);
     setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
@@ -297,7 +298,7 @@ belit(0);
     setMotor(FR_IN1, FR_IN2, FR_PWM, -1, speed);
     Serial.println("360 RIGHT:" + String(speed));
   }
-
+*/
   // 10 Hz güncelleme (100ms)
   delay(100);
 
