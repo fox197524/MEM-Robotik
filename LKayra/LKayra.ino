@@ -34,9 +34,11 @@ const int E_PWM = 1;
 const int E_IN1 = 2;
 const int E_IN2 = 42;
 
-#define servopin 41;
-#define bervopin 14;
+#define servopin 41
+#define bervopin 14
 
+Servo eser; 
+Servo beser;
 
 using Scheduler = probot::command::Scheduler;
 
@@ -66,10 +68,14 @@ pinMode(E_IN2, OUTPUT);
 
 
 ESP32PWM::allocateTimer(0);
-  eser.setPeriodHertz(50);    // Standart 50Hz servo
-  eser.attach(servopin, 500, 2400); // Pin ve min/max pals süreleri
+  eser.setPeriodHertz(50);
+  eser.attach(servopin, 500, 2400);
   
-  eser.write(0); // Başlangıçta 0 derecede dursun
+  beser.setPeriodHertz(50);
+  beser.attach(bervopin, 500, 2400);
+
+  eser.write(0);
+  beser.write(0);
 
 
 }
@@ -84,17 +90,11 @@ void autonomousInit() {
 
 void autonomousLoop() {
   // Otonom süresince sürekli çalışır
-  ileri(200);
-  delay(500);
+  ileri(250);
+  delay(1000);
   anidur();
-  delay(500);
-  solon();
-  delay(500);
-  anidur();
-  delay(500);
-  sagon();
-  delay(500);
-  anidur();
+  delay(30000);
+
 }
 
 
@@ -112,20 +112,18 @@ int speed = 0;
 
 
 //elevator lid servoif-else architecture
-if(js.getA() = 1){
+if(js.getA() == 1){
  elit(100);
 }
-else {
+else if(js.getA() == 0) {
  elit(0);
 }
 
-if(js.getB() = 1){
-belit(95);
-
+if(js.getB() == 1){
+ belit(100);
 }
-else{
-belit(0);
-
+else if(js.getB() == 0) {
+ belit(0);
 }
 
   // Başlık
@@ -199,30 +197,31 @@ belit(0);
   // 3. SAĞA KAYMA (Sol Stick X ekseni pozitif)
   else if (js.getLeftX() > 0.1) {
     speed = map(js.getLeftX() * 100, 0, 100, 0, 255);
-    sagaKay(speed);
+    sagslide(speed);
     probot::telemetry::printf("YON: SAG KAYMA | HIZ: %d\n", speed);
   }
 
   // 4. SOLA KAYMA (Sol Stick X ekseni negatif)
   else if (js.getLeftX() < -0.1) {
     speed = map(abs(js.getLeftX() * 100), 0, 100, 0, 255);
-    solaKay(speed);
+    solslide(speed);
     probot::telemetry::printf("YON: SOL KAYMA | HIZ: %d\n", speed);
   }
 
   // 5. KENDİ EKSENİNDE SAĞA DÖNÜŞ (Sağ Stick X ekseni pozitif)
   else if (js.getRightX() > 0.1) {
     speed = map(js.getRightX() * 100, 0, 100, 0, 255);
-    donSag(speed);
+    sag360(speed);
     probot::telemetry::printf("YON: SAG DONUS | HIZ: %d\n", speed);
   }
 
   // 6. KENDİ EKSENİNDE SOLA DÖNÜŞ (Sağ Stick X ekseni negatif)
   else if (js.getRightX() < -0.1) {
     speed = map(abs(js.getRightX() * 100), 0, 100, 0, 255);
-    donSol(speed);
+    sol360(speed);
     probot::telemetry::printf("YON: SOL DONUS | HIZ: %d\n", speed);
   }
+
 
   // HİÇBİRİNE BASILMIYORSA DUR
   else {
@@ -230,6 +229,22 @@ belit(0);
     probot::telemetry::clear();
     probot::telemetry::println("DURUM: BEKLEMEDE");
   }
+
+  if(pov == 0){
+  eup(200);
+
+
+  }
+
+  else if(pov == 180){
+  edown(200);
+
+
+  }
+else{
+adur(); 
+
+}
 
   delay(20); // ESP32'yi ve WiFi trafiğini rahatlatmak için
 /*
@@ -385,11 +400,11 @@ digitalWrite(RR_IN2, HIGH);
 digitalWrite(FR_IN1, HIGH);
 digitalWrite(FR_IN2, LOW);
 
-digitalWrite(FL_IN1, HIGH);
-digitalWrite(FL_IN2, LOW);
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, HIGH);
 
-digitalWrite(RL_IN1, LOW);
-digitalWrite(RL_IN2, HIGH);
+digitalWrite(RL_IN1, HIGH);
+digitalWrite(RL_IN2, LOW);
 
 analogWrite(FL_PWM, pwm);
 analogWrite(FR_PWM, pwm);
@@ -400,17 +415,17 @@ analogWrite(RR_PWM, pwm);
 
 void sol360(int pwm){
 
-digitalWrite(FL_IN1, HIGH);
-digitalWrite(FL_IN2, LOW);
+digitalWrite(FL_IN1, LOW);
+digitalWrite(FL_IN2, HIGH);
 
-digitalWrite(FR_IN1, LOW);
-digitalWrite(FR_IN2, HIGH);
+digitalWrite(FR_IN1, HIGH);
+digitalWrite(FR_IN2, LOW);
 
-digitalWrite(RL_IN1, HIGH);
-digitalWrite(RL_IN2, LOW);
+digitalWrite(RL_IN1, LOW);
+digitalWrite(RL_IN2, HIGH);
 
-digitalWrite(RR_IN1, LOW);
-digitalWrite(RR_IN2, HIGH);
+digitalWrite(RR_IN1, HIGH);
+digitalWrite(RR_IN2, LOW);
 
 analogWrite(FL_PWM, pwm);
 analogWrite(FR_PWM, pwm);
@@ -424,14 +439,14 @@ void sag360(int pwm){
 digitalWrite(FL_IN1, HIGH);
 digitalWrite(FL_IN2, LOW);
 
-digitalWrite(FR_IN1, HIGH);
-digitalWrite(FR_IN2, LOW);
+digitalWrite(FR_IN1, LOW);
+digitalWrite(FR_IN2, HIGH);
 
 digitalWrite(RL_IN1, HIGH);
 digitalWrite(RL_IN2, LOW);
 
-digitalWrite(RR_IN1, HIGH);
-digitalWrite(RR_IN2, LOW);
+digitalWrite(RR_IN1, LOW);
+digitalWrite(RR_IN2, HIGH);
 
 analogWrite(FL_PWM, pwm);
 analogWrite(FR_PWM, pwm);
@@ -556,9 +571,7 @@ void elit(int derece) {
      Artık 'derece' parametresi 0 ile 180 arasında bir değer alabilir.
      Bu değer 0-255 arası bir PWM sinyaline dönüştürülür.
   */
-  int mappedValue = map(derece, 0, 180, 0, 255); 
-  
-  analogWrite(servopin, mappedValue);
+eser.write(derece);
 }
 
 
@@ -567,9 +580,22 @@ void belit(int berece) {
      Artık 'derece' parametresi 0 ile 180 arasında bir değer alabilir.
      Bu değer 0-255 arası bir PWM sinyaline dönüştürülür.
   */
-  int mappedValue = map(berece, 0, 180, 0, 255); 
-  
-  analogWrite(bervopin, mappedValue);
+beser.write(berece);
+}
+
+void adur(){
+
+digitalWrite(E_IN1, HIGH);
+digitalWrite(E_IN2, HIGH);
+
+analogWrite(E_PWM, 255);
+
+delay(10);
+
+  digitalWrite(E_IN1, LOW);
+digitalWrite(E_IN2, LOW);
+
+  analogWrite(E_PWM, 0);
 }
 
 void fanidur(){
@@ -595,7 +621,7 @@ analogWrite(RL_PWM, 255);
 analogWrite(RR_PWM, 255);
 analogWrite(E_PWM, 255);
 
-delay(30);
+delay(10);
 
 digitalWrite(FL_IN1, LOW);
 digitalWrite(FL_IN2, LOW);
