@@ -5,7 +5,7 @@
 #define PROBOT_WIFI_AP_SSID "MECHATAK"
 #define PROBOT_WIFI_AP_CHANNEL 3
 
-#include <ESP32Servo.h>
+#include <ESP32Servo.h> // Use the ESP32-specific library
 #include <probot.h>
 #include <probot/io/joystick_api.hpp>
 #include <probot/command.hpp>  // Includes scheduler, command, subsystem, command_group
@@ -34,13 +34,14 @@ const int E_PWM = 1;
 const int E_IN1 = 2;
 const int E_IN2 = 42;
 
-#define servopin 41
-#define bervopin 14
+Servo elevator;  // Create servo object to control a servo
 
-Servo eser; 
-Servo beser;
+int servoPin = 14; 
+int pos = 0; 
+int pos2 = 90;
 
 using Scheduler = probot::command::Scheduler;
+
 
 void robotInit() {
   // put your setup code here, to run once:
@@ -65,18 +66,13 @@ pinMode(E_IN1, OUTPUT);
 pinMode(E_IN2, OUTPUT);
 
 
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
 
-
-ESP32PWM::allocateTimer(0);
-  eser.setPeriodHertz(50);
-  eser.attach(servopin, 500, 2400);
-  
-  beser.setPeriodHertz(50);
-  beser.attach(bervopin, 500, 2400);
-
-  eser.write(0);
-  beser.write(0);
-
+  elevator.setPeriodHertz(50);    // Standard 50hz servo
+  elevator.attach(servoPin, 500, 2400); // Attach with min/max pulse widths in microseconds
 
 }
 
@@ -91,7 +87,7 @@ void autonomousInit() {
 void autonomousLoop() {
   // Otonom süresince sürekli çalışır
   ileri(250);
-  delay(1000);
+  delay(1200);
   anidur();
   delay(30000);
 
@@ -112,19 +108,7 @@ int speed = 0;
 
 
 //elevator lid servoif-else architecture
-if(js.getA() == 1){
- elit(100);
-}
-else if(js.getA() == 0) {
- elit(0);
-}
 
-if(js.getB() == 1){
- belit(100);
-}
-else if(js.getB() == 0) {
- belit(0);
-}
 
   // Başlık
   probot::telemetry::println("=== JOYSTICK TEST ===");
@@ -237,12 +221,23 @@ else if(js.getB() == 0) {
   }
 
   else if(pov == 180){
-  edown(200);
+  edown(1000);
 
 
   }
 else{
 adur(); 
+
+}
+//servo çalış artık
+
+
+
+if(js.getA() == true){
+    elevator.write(pos2);                                 
+  }
+else if(js.getA() == false){
+elevator.write(pos);
 
 }
 
@@ -550,15 +545,6 @@ analogWrite(RL_PWM, 255);
 
 void eup(int pwma){
 
-digitalWrite(E_IN1, HIGH);
-digitalWrite(E_IN2, LOW);
-
-analogWrite(E_PWM, pwma);
-
-}
-
-void edown(int pwma){
-
 digitalWrite(E_IN1, LOW);
 digitalWrite(E_IN2, HIGH);
 
@@ -566,22 +552,15 @@ analogWrite(E_PWM, pwma);
 
 }
 
-void elit(int derece) {
-  /* map(giriş_değeri, giriş_min, giriş_max, çıkış_min, çıkış_max)
-     Artık 'derece' parametresi 0 ile 180 arasında bir değer alabilir.
-     Bu değer 0-255 arası bir PWM sinyaline dönüştürülür.
-  */
-eser.write(derece);
+void edown(int pwma){
+
+digitalWrite(E_IN1, HIGH);
+digitalWrite(E_IN2, LOW);
+
+analogWrite(E_PWM, pwma);
+
 }
 
-
-void belit(int berece) {
-  /* map(giriş_değeri, giriş_min, giriş_max, çıkış_min, çıkış_max)
-     Artık 'derece' parametresi 0 ile 180 arasında bir değer alabilir.
-     Bu değer 0-255 arası bir PWM sinyaline dönüştürülür.
-  */
-beser.write(berece);
-}
 
 void adur(){
 
