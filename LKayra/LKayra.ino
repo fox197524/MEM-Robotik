@@ -106,19 +106,27 @@ void teleopInit() {
 void  teleopLoop() {
   // Manuel modda sürekli.
 auto js = probot::io::joystick_api::makeDefault();
-
+int speed = 0;
   // Her döngüde buffer'ı temizle, yoksa veriler birikir
   probot::telemetry::clear();
 
 
 //elevator lid servoif-else architecture
-if(js.getA = 1){
+if(js.getA() = 1){
  elit(100);
 }
 else {
  elit(0);
 }
 
+if(js.getB() = 1){
+belit(95);
+
+}
+else{
+belit(0);
+
+}
 
   // Başlık
   probot::telemetry::println("=== JOYSTICK TEST ===");
@@ -173,11 +181,62 @@ else {
 
 
 
+  // 1. İLERİ (Sağ Tetik - RT)
+  if (js.getRightTriggerAxis() > 0.05) {
+    speed = map(js.getRightTriggerAxis() * 100, 0, 100, 0, 255);
+    ileri(speed);
+    probot::telemetry::printf("YON: ILERI | HIZ: %d\n", speed);
+  }
+
+  // 2. GERİ (Sol Tetik - LT)
+  else if (js.getLeftTriggerAxis() > 0.05) {
+    speed = map(js.getLeftTriggerAxis() * 100, 0, 100, 0, 255);
+    geri(speed);
+    probot::telemetry::printf("YON: GERI | HIZ: %d\n", speed);
+  }
+
+  // 3. SAĞA KAYMA (Sol Stick X ekseni pozitif)
+  else if (js.getLeftX() > 0.1) {
+    speed = map(js.getLeftX() * 100, 0, 100, 0, 255);
+    sagaKay(speed);
+    probot::telemetry::printf("YON: SAG KAYMA | HIZ: %d\n", speed);
+  }
+
+  // 4. SOLA KAYMA (Sol Stick X ekseni negatif)
+  else if (js.getLeftX() < -0.1) {
+    speed = map(abs(js.getLeftX() * 100), 0, 100, 0, 255);
+    solaKay(speed);
+    probot::telemetry::printf("YON: SOL KAYMA | HIZ: %d\n", speed);
+  }
+
+  // 5. KENDİ EKSENİNDE SAĞA DÖNÜŞ (Sağ Stick X ekseni pozitif)
+  else if (js.getRightX() > 0.1) {
+    speed = map(js.getRightX() * 100, 0, 100, 0, 255);
+    donSag(speed);
+    probot::telemetry::printf("YON: SAG DONUS | HIZ: %d\n", speed);
+  }
+
+  // 6. KENDİ EKSENİNDE SOLA DÖNÜŞ (Sağ Stick X ekseni negatif)
+  else if (js.getRightX() < -0.1) {
+    speed = map(abs(js.getRightX() * 100), 0, 100, 0, 255);
+    donSol(speed);
+    probot::telemetry::printf("YON: SOL DONUS | HIZ: %d\n", speed);
+  }
+
+  // HİÇBİRİNE BASILMIYORSA DUR
+  else {
+    dur();
+    probot::telemetry::clear();
+    probot::telemetry::println("DURUM: BEKLEMEDE");
+  }
+
+  delay(20); // ESP32'yi ve WiFi trafiğini rahatlatmak için
+
 //Bu bölümü komple uyumlu hale getir
   // 2. Drive Forward (Trigger 5)
   else if (js.getRightTriggerAxis > -0.995) {  // or inside these conditions
     //Serial.println("FORWARD");
-    speed = js.getRightTriggerAxis(js);
+    speed = js.getRightTriggerAxis(ileriaxis);
     setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
     setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
     setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
@@ -502,7 +561,7 @@ void elit(int derece) {
 }
 
 
-void elit(int berece) {
+void belit(int berece) {
   /* map(giriş_değeri, giriş_min, giriş_max, çıkış_min, çıkış_max)
      Artık 'derece' parametresi 0 ile 180 arasında bir değer alabilir.
      Bu değer 0-255 arası bir PWM sinyaline dönüştürülür.
