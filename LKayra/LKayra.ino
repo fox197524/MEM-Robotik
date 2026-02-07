@@ -5,6 +5,7 @@
 #define PROBOT_WIFI_AP_SSID "MECHATAK"
 #define PROBOT_WIFI_AP_CHANNEL 3
 
+#include <ESP32Servo.h>
 #include <probot.h>
 #include <probot/io/joystick_api.hpp>
 #include <probot/command.hpp>  // Includes scheduler, command, subsystem, command_group
@@ -33,6 +34,10 @@ const int E_PWM = 1;
 const int E_IN1 = 2;
 const int E_IN2 = 42;
 
+#define servopin 41;
+#define bervopin 14;
+
+
 using Scheduler = probot::command::Scheduler;
 
 void robotInit() {
@@ -56,6 +61,15 @@ pinMode(RR_IN2, OUTPUT);
 pinMode(E_PWM, OUTPUT);
 pinMode(E_IN1, OUTPUT);
 pinMode(E_IN2, OUTPUT);
+
+
+
+
+ESP32PWM::allocateTimer(0);
+  eser.setPeriodHertz(50);    // Standart 50Hz servo
+  eser.attach(servopin, 500, 2400); // Pin ve min/max pals süreleri
+  
+  eser.write(0); // Başlangıçta 0 derecede dursun
 
 
 }
@@ -93,9 +107,18 @@ void  teleopLoop() {
   // Manuel modda sürekli.
 auto js = probot::io::joystick_api::makeDefault();
 
-
   // Her döngüde buffer'ı temizle, yoksa veriler birikir
   probot::telemetry::clear();
+
+
+//elevator lid servoif-else architecture
+if(js.getA = 1){
+ elit(100);
+}
+else {
+ elit(0);
+}
+
 
   // Başlık
   probot::telemetry::println("=== JOYSTICK TEST ===");
@@ -152,18 +175,18 @@ auto js = probot::io::joystick_api::makeDefault();
 
 //Bu bölümü komple uyumlu hale getir
   // 2. Drive Forward (Trigger 5)
-  else if (axis5 > -0.995) {  // or inside these conditions
+  else if (js.getRightTriggerAxis > -0.995) {  // or inside these conditions
     //Serial.println("FORWARD");
-    speed = getSpeedTrig(axis5);
+    speed = js.getRightTriggerAxis(js);
     setMotor(RL_IN1, RL_IN2, RL_PWM, 1, speed);
     setMotor(RR_IN1, RR_IN2, RR_PWM, 1, speed);
     setMotor(FL_IN1, FL_IN2, FL_PWM, 1, speed);
     setMotor(FR_IN1, FR_IN2, FR_PWM, 1, speed);
-    Serial.println("FORWARD:" + String(speed));
+    prpbpt::telemetry::println("FORWARD:" + String(speed));
   }
 
   // 3. Drive Reverse (Trigger 2)
-  else if (axis2 > -0.995) {
+  else if (js.getLeftTriggerAxis > -0.995) {
     //Serial.println("REVERSE");
     speed = getSpeedTrig(axis2);
     setMotor(RL_IN1, RL_IN2, RL_PWM, -1, speed);
@@ -468,15 +491,25 @@ analogWrite(E_PWM, pwma);
 
 }
 
-void elit(){
-
-  analogWrite(RL_PWM, 255);
-
+void elit(int derece) {
+  /* map(giriş_değeri, giriş_min, giriş_max, çıkış_min, çıkış_max)
+     Artık 'derece' parametresi 0 ile 180 arasında bir değer alabilir.
+     Bu değer 0-255 arası bir PWM sinyaline dönüştürülür.
+  */
+  int mappedValue = map(derece, 0, 180, 0, 255); 
+  
+  analogWrite(servopin, mappedValue);
 }
 
-void belit(){
 
-  analogWrite(RL_PWM, 255);
+void elit(int berece) {
+  /* map(giriş_değeri, giriş_min, giriş_max, çıkış_min, çıkış_max)
+     Artık 'derece' parametresi 0 ile 180 arasında bir değer alabilir.
+     Bu değer 0-255 arası bir PWM sinyaline dönüştürülür.
+  */
+  int mappedValue = map(berece, 0, 180, 0, 255); 
+  
+  analogWrite(bervopin, mappedValue);
 }
 
 void fanidur(){
